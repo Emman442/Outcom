@@ -1,0 +1,6 @@
+{
+  "name": "WorkTrial",
+  "description": "Decentralized, outcome-based hiring and talent discovery protocol built on Solana with USDC rewards and LayerZero cross-chain communication.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
