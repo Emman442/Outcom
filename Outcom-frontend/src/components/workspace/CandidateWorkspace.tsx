@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { WorkTrial } from '../../types';
+import { Outcom } from '../../types';
 import { UsdcDisplay } from '../common/UsdcIcon';
 import { Button } from '../common/Button';
 import { StatusBadge, DifficultyBadge } from '../common/Badge';
@@ -7,10 +7,10 @@ import { SolanaIcon } from '../common/NetworkIcons';
 import { Clock, CheckCircle, ArrowRight, Compass, AlertCircle, FileCheck } from 'lucide-react';
 
 interface CandidateWorkspaceProps {
-  trials: WorkTrial[];
-  onSelectTrial: (trial: WorkTrial) => void;
-  onSubmitEvidence: (trial: WorkTrial) => void;
-  onViewVerification: (trial: WorkTrial) => void;
+  trials: Outcom[];
+  onSelectTrial: (trial: Outcom) => void;
+  onSubmitEvidence: (trial: Outcom) => void;
+  onViewVerification: (trial: Outcom) => void;
   onExploreTrials: () => void;
 }
 

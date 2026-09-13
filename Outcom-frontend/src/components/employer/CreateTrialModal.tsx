@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { WorkTrial, UserWallet, Difficulty } from '../../types';
+import { Outcom, UserWallet, Difficulty } from '../../types';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
 import { UsdcDisplay, UsdcIcon } from '../common/UsdcIcon';
@@ -18,7 +18,7 @@ interface CreateTrialModalProps {
   isOpen: boolean;
   onClose: () => void;
   wallet: UserWallet;
-  onCreateTrial: (newTrial: Partial<WorkTrial>) => void;
+  onCreateTrial: (newTrial: Partial<Outcom>) => void;
 }
 
 export const CreateTrialModal: React.FC<CreateTrialModalProps> = ({
@@ -32,7 +32,7 @@ export const CreateTrialModal: React.FC<CreateTrialModalProps> = ({
   // Step 1: Work Definition
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState<WorkTrial['category']>('Full-Stack');
+  const [category, setCategory] = useState<Outcom['category']>('Full-Stack');
   const [skills, setSkills] = useState('Solana, Anchor, Rust, TypeScript');
   const [difficulty, setDifficulty] = useState<Difficulty>('Advanced');
 
@@ -124,7 +124,7 @@ export const CreateTrialModal: React.FC<CreateTrialModalProps> = ({
       setIsFunding(false);
 
       // Create trial record
-      const newTrialData: Partial<WorkTrial> = {
+      const newTrialData: Partial<Outcom> = {
         title: title || 'Production Work Trial',
         company: 'Example Labs',
         companyLogo: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=80',
@@ -460,7 +460,7 @@ export const CreateTrialModal: React.FC<CreateTrialModalProps> = ({
                 <div>
                   <h3 className="text-lg font-bold text-white">Work Trial Published & Escrow Locked</h3>
                   <p className="text-xs text-[#9CA3AF] mt-1 max-w-sm mx-auto">
-                    {totalFundingRequired} USDC is now locked in the WorkTrial Solana escrow contract. Candidates can discover and commit to this trial immediately.
+                    {totalFundingRequired} USDC is now locked in the Outcom Solana escrow contract. Candidates can discover and commit to this trial immediately.
                   </p>
                 </div>
                 <div className="p-3 bg-[#121417] border border-[#24282D] rounded-lg font-mono text-xs text-[#9CA3AF]">

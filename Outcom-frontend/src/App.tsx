@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Routes, Route, useNavigate, useLocation, useParams, Navigate } from 'react-router-dom';
 import {
   NavigationTab,
-  WorkTrial,
+  Outcom,
   UserWallet,
   SubmissionData,
   CandidateApplicant,
@@ -34,7 +34,7 @@ import { ReputationView } from './components/reputation/ReputationView';
 import { EmployerDashboard } from './components/employer/EmployerDashboard';
 import { CreateTrialModal } from './components/employer/CreateTrialModal';
 import { LeaderboardView } from './components/leaderboard/LeaderboardView';
-import { SolanaIcon, LayerZeroIcon, WorkTrialLogo } from './components/common/NetworkIcons';
+import { SolanaIcon, LayerZeroIcon, OutcomLogo } from './components/common/NetworkIcons';
 import { UsdcIcon } from './components/common/UsdcIcon';
 
 // Sub-route wrapper components for trial-specific routes
@@ -46,12 +46,12 @@ function TrialDetailRoute({
   onSubmitEvidenceNav,
   onSelectTrial,
 }: {
-  trials: WorkTrial[];
+  trials: Outcom[];
   wallet: UserWallet;
-  onCommitTrial: (trial: WorkTrial) => void;
-  onOpenReferral: (trial: WorkTrial) => void;
-  onSubmitEvidenceNav: (trial: WorkTrial) => void;
-  onSelectTrial: (trial: WorkTrial) => void;
+  onCommitTrial: (trial: Outcom) => void;
+  onOpenReferral: (trial: Outcom) => void;
+  onSubmitEvidenceNav: (trial: Outcom) => void;
+  onSelectTrial: (trial: Outcom) => void;
 }) {
   const { trialId } = useParams<{ trialId: string }>();
   const navigate = useNavigate();
@@ -95,8 +95,8 @@ function SubmissionRoute({
   wallet,
   onSubmit,
 }: {
-  trials: WorkTrial[];
-  selectedTrial: WorkTrial;
+  trials: Outcom[];
+  selectedTrial: Outcom;
   wallet: UserWallet;
   onSubmit: (submission: SubmissionData) => void;
 }) {
@@ -123,8 +123,8 @@ function VerificationRoute({
   wallet,
   onOpenTransactionDetails,
 }: {
-  trials: WorkTrial[];
-  selectedTrial: WorkTrial;
+  trials: Outcom[];
+  selectedTrial: Outcom;
   verdict: VerificationVerdict;
   wallet: UserWallet;
   onOpenTransactionDetails: (tx: string) => void;
@@ -150,8 +150,8 @@ export default function App() {
   const location = useLocation();
 
   // Navigation & View State
-  const [trials, setTrials] = useState<WorkTrial[]>(MOCK_TRIALS);
-  const [selectedTrial, setSelectedTrial] = useState<WorkTrial>(MOCK_TRIALS[0]);
+  const [trials, setTrials] = useState<Outcom[]>(MOCK_TRIALS);
+  const [selectedTrial, setSelectedTrial] = useState<Outcom>(MOCK_TRIALS[0]);
   const [verdict, setVerdict] = useState<VerificationVerdict>(MOCK_VERIFICATION_SAMPLE);
 
   // Wallet State
@@ -159,7 +159,7 @@ export default function App() {
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
 
   // Referral Modal State
-  const [referralTrial, setReferralTrial] = useState<WorkTrial | null>(null);
+  const [referralTrial, setReferralTrial] = useState<Outcom | null>(null);
   const [isReferralModalOpen, setIsReferralModalOpen] = useState(false);
 
   // Employer Create Trial Modal
@@ -174,12 +174,12 @@ export default function App() {
   }, [location.pathname]);
 
   // Handlers
-  const handleSelectTrial = (trial: WorkTrial) => {
+  const handleSelectTrial = (trial: Outcom) => {
     setSelectedTrial(trial);
     navigate(`/trials/${trial.id}`);
   };
 
-  const handleOpenReferral = (trial: WorkTrial) => {
+  const handleOpenReferral = (trial: Outcom) => {
     setReferralTrial(trial);
     setIsReferralModalOpen(true);
   };
@@ -189,7 +189,7 @@ export default function App() {
     console.log('Referral dispatched on-chain for', candidateAddress, message);
   };
 
-  const handleCommitToTrial = (trial: WorkTrial) => {
+  const handleCommitToTrial = (trial: Outcom) => {
     // Transition candidate status to IN PROGRESS
     setTrials((prev) =>
       prev.map((t) =>
@@ -205,7 +205,7 @@ export default function App() {
     }));
   };
 
-  const handleSubmitEvidenceNav = (trial: WorkTrial) => {
+  const handleSubmitEvidenceNav = (trial: Outcom) => {
     setSelectedTrial(trial);
     navigate(`/trials/${trial.id}/submit`);
   };
@@ -235,8 +235,8 @@ export default function App() {
     navigate(`/trials/${currentTrial.id}/verification`);
   };
 
-  const handleCreateNewTrial = (newTrialData: Partial<WorkTrial>) => {
-    const fullTrial: WorkTrial = {
+  const handleCreateNewTrial = (newTrialData: Partial<Outcom>) => {
+    const fullTrial: Outcom = {
       id: `wt-custom-${Date.now().toString().slice(-4)}`,
       title: newTrialData.title || 'Custom Work Trial',
       company: 'Example Labs',
@@ -501,8 +501,8 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 text-white font-semibold tracking-tight">
-              <WorkTrialLogo className="w-5 h-5 text-[#0052FF]" />
-              <span>WorkTrial</span>
+              <OutcomLogo className="w-5 h-5 text-[#0052FF]" />
+              <span>Outcom</span>
             </div>
             <span className="text-[#6B7280]">|</span>
             <span className="font-mono text-[11px]">Outcome-Based Hiring Protocol</span>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { WorkTrial, UserWallet, CandidateApplicant } from '../../types';
+import { Outcom, UserWallet, CandidateApplicant } from '../../types';
 import { UsdcDisplay } from '../common/UsdcIcon';
 import { Button } from '../common/Button';
 import { Badge, DifficultyBadge } from '../common/Badge';
@@ -22,16 +22,16 @@ import {
 } from 'lucide-react';
 
 interface TrialDetailViewProps {
-  trial: WorkTrial;
+  trial: Outcom;
   wallet: UserWallet;
   onBack: () => void;
-  onStartTrial?: (trial: WorkTrial) => void;
-  onCommitTrial?: (trial: WorkTrial) => void;
-  onContinueTrial?: (trial: WorkTrial) => void;
-  onSubmitEvidence: (trial: WorkTrial) => void;
-  onViewVerification: (trial: WorkTrial) => void;
-  onOpenReferModal?: (trial: WorkTrial) => void;
-  onOpenReferral?: (trial: WorkTrial) => void;
+  onStartTrial?: (trial: Outcom) => void;
+  onCommitTrial?: (trial: Outcom) => void;
+  onContinueTrial?: (trial: Outcom) => void;
+  onSubmitEvidence: (trial: Outcom) => void;
+  onViewVerification: (trial: Outcom) => void;
+  onOpenReferModal?: (trial: Outcom) => void;
+  onOpenReferral?: (trial: Outcom) => void;
   trialApplicants?: CandidateApplicant[];
 }
 
@@ -50,7 +50,7 @@ export const TrialDetailView: React.FC<TrialDetailViewProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'applicants'>('overview');
 
-  const handleRefer = (targetTrial: WorkTrial) => {
+  const handleRefer = (targetTrial: Outcom) => {
     if (onOpenReferral) {
       onOpenReferral(targetTrial);
     } else if (onOpenReferModal) {
@@ -58,7 +58,7 @@ export const TrialDetailView: React.FC<TrialDetailViewProps> = ({
     }
   };
 
-  const handleStart = (targetTrial: WorkTrial) => {
+  const handleStart = (targetTrial: Outcom) => {
     if (onCommitTrial) {
       onCommitTrial(targetTrial);
     } else if (onStartTrial) {
@@ -647,7 +647,7 @@ export const TrialDetailView: React.FC<TrialDetailViewProps> = ({
           {/* Quick Guidance Card */}
           <div className="bg-[#0D0F12] border border-[#24282D] rounded-xl p-4 text-xs text-[#9CA3AF] space-y-2">
             <span className="font-semibold text-white block font-mono text-[11px] uppercase tracking-wider">
-              WorkTrial Protocol Pipeline:
+              Outcom Protocol Pipeline:
             </span>
             <p>
               1. <strong className="text-white">Start Trial:</strong> Accept requirements to enter <strong className="text-[#F59E0B]">IN PROGRESS</strong>.

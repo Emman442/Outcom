@@ -81,7 +81,7 @@ export const WalletModal: React.FC<WalletModalProps> = ({
           </div>
 
           <div className="pt-2 text-xs text-[#6B7280] text-center">
-            By connecting, you authorize WorkTrial smart contracts to interact with your public key for escrow verification.
+            By connecting, you authorize Outcom smart contracts to interact with your public key for escrow verification.
           </div>
         </div>
       ) : (
@@ -150,7 +150,7 @@ export const WalletModal: React.FC<WalletModalProps> = ({
             </div>
           </div>
 
-          {/* Recent WorkTrial Transactions */}
+          {/* Recent Outcom Transactions */}
           <div>
             <div className="text-xs font-semibold text-[#9CA3AF] uppercase tracking-wider mb-2">
               Recent Protocol Activity

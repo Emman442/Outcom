@@ -283,13 +283,13 @@ export const ReputationView: React.FC<ReputationViewProps> = ({
         isOpen={showCredentialModal}
         onClose={() => setShowCredentialModal(false)}
         title="On-Chain Credential Record"
-        subtitle="WorkTrial Cryptographic Proof v1"
+        subtitle="Outcom Cryptographic Proof v1"
         maxWidth="lg"
       >
         <div className="space-y-4 text-xs font-mono">
           <div className="p-4 bg-[#090A0C] border border-[#24282D] rounded-lg text-[#9CA3AF] space-y-2 leading-relaxed">
             <div className="text-[#10B981] font-semibold">// SOLANA PROTOCOL VERIFIABLE ATTESTATION</div>
-            <div>"issuer": "WorkTrial_Protocol_Oracles_v1.2",</div>
+            <div>"issuer": "Outcom_Protocol_Oracles_v1.2",</div>
             <div>"holder": "{wallet.address}",</div>
             <div>"reputationScore": 94,</div>
             <div>"verifiedTrialsCount": 18,</div>

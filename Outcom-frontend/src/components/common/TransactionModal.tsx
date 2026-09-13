@@ -64,10 +64,10 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
           </span>
 
           <div className="space-y-2 text-[11px]">
-            {/* Instruction 1: WorkTrial Anchor Program */}
+            {/* Instruction 1: Outcom Anchor Program */}
             <div className="p-2.5 rounded bg-[#0D0F12] border border-[#24282D] space-y-1">
               <div className="flex items-center justify-between text-white font-semibold">
-                <span>#1 WorkTrial::evaluate_and_release</span>
+                <span>#1 Outcom::evaluate_and_release</span>
                 <span className="text-[#10B981] text-[10px]">Success</span>
               </div>
               <div className="text-[#9CA3AF] text-[10px]">

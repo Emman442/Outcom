@@ -1,5 +1,5 @@
 import React from 'react';
-import { WorkTrial } from '../../types';
+import { Outcom } from '../../types';
 import { TrialCard } from '../trials/TrialCard';
 import { UsdcDisplay } from '../common/UsdcIcon';
 import { Button } from '../common/Button';
@@ -17,11 +17,11 @@ import {
 } from 'lucide-react';
 
 interface LandingViewProps {
-  trials: WorkTrial[];
-  onSelectTrial: (trial: WorkTrial) => void;
+  trials: Outcom[];
+  onSelectTrial: (trial: Outcom) => void;
   onExploreTrials: () => void;
   onCreateTrial: () => void;
-  onOpenReferral: (trial: WorkTrial) => void;
+  onOpenReferral: (trial: Outcom) => void;
 }
 
 export const LandingView: React.FC<LandingViewProps> = ({
@@ -40,7 +40,7 @@ export const LandingView: React.FC<LandingViewProps> = ({
         {/* Subtle Protocol Pill */}
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#121417] border border-[#24282D] text-xs font-mono text-[#9CA3AF]">
           <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
-          <span>WorkTrial Protocol v1.2</span>
+          <span>Outcom Protocol v1.2</span>
           <span className="text-[#6B7280]">|</span>
           <span className="flex items-center gap-1 text-white">
             <SolanaIcon className="w-3 h-3" /> Solana Escrow
@@ -61,7 +61,7 @@ export const LandingView: React.FC<LandingViewProps> = ({
 
         {/* Supporting text */}
         <p className="text-base sm:text-lg text-[#9CA3AF] max-w-2xl mx-auto leading-relaxed font-normal">
-          WorkTrial is an outcome-based hiring protocol on Solana. Companies fund escrowed USDC rewards for real work trials. Candidates build verifiable on-chain reputation.
+          Outcom is an outcome-based hiring protocol on Solana. Companies fund escrowed USDC rewards for real work trials. Candidates build verifiable on-chain reputation.
         </p>
 
         {/* Action Buttons */}
@@ -72,7 +72,7 @@ export const LandingView: React.FC<LandingViewProps> = ({
             onClick={onExploreTrials}
             iconRight={<ArrowRight className="w-4 h-4" />}
           >
-            Explore Work Trials
+            Explore Outcom
           </Button>
           <Button
             variant="outline"
@@ -132,7 +132,7 @@ export const LandingView: React.FC<LandingViewProps> = ({
               Protocol Architecture
             </span>
             <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight mt-0.5">
-              How WorkTrial Works
+              How Outcom Works
             </h2>
           </div>
           <span className="text-xs text-[#9CA3AF] font-mono">
@@ -250,7 +250,7 @@ export const LandingView: React.FC<LandingViewProps> = ({
           <div className="p-4 bg-[#121417] border border-[#24282D] rounded-xl space-y-1.5">
             <h4 className="text-white font-semibold">Instant Sub-Cent Escrow</h4>
             <p>
-              WorkTrial programs execute on Solana for instant micro-settlements, low transaction overhead, and sub-second escrow locks in native USDC.
+              Outcom programs execute on Solana for instant micro-settlements, low transaction overhead, and sub-second escrow locks in native USDC.
             </p>
           </div>
 

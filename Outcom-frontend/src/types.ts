@@ -13,7 +13,7 @@ export interface DefinitionOfDoneItem {
   text: string;
 }
 
-export interface WorkTrial {
+export interface Outcom {
   id: string;
   title: string;
   company: string;

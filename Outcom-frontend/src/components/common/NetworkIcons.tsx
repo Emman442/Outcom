@@ -30,7 +30,7 @@ export const LayerZeroIcon: React.FC<{ className?: string }> = ({ className = 'w
   </svg>
 );
 
-export const WorkTrialLogo: React.FC<{ className?: string; size?: number }> = ({
+export const OutcomLogo: React.FC<{ className?: string; size?: number }> = ({
   className = 'w-7 h-7',
 }) => (
   <svg
@@ -38,7 +38,7 @@ export const WorkTrialLogo: React.FC<{ className?: string; size?: number }> = ({
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
     className={`inline-block flex-shrink-0 ${className}`}
-    aria-label="WorkTrial"
+    aria-label="Outcom"
   >
     <rect width="32" height="32" rx="8" fill="#121417" stroke="#24282D" strokeWidth="1.5" />
     <path

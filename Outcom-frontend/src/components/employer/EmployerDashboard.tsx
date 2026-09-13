@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { WorkTrial, CandidateApplicant, UserWallet } from '../../types';
+import { Outcom, CandidateApplicant, UserWallet } from '../../types';
 import { UsdcDisplay } from '../common/UsdcIcon';
 import { Button } from '../common/Button';
 import { Badge, DifficultyBadge, StatusBadge } from '../common/Badge';
@@ -19,11 +19,11 @@ import {
 } from 'lucide-react';
 
 interface EmployerDashboardProps {
-  trials: WorkTrial[];
+  trials: Outcom[];
   applicants: CandidateApplicant[];
   wallet: UserWallet;
   onOpenCreateTrial: () => void;
-  onSelectTrial: (trial: WorkTrial) => void;
+  onSelectTrial: (trial: Outcom) => void;
   onViewApplicant: (applicant: CandidateApplicant) => void;
 }
 

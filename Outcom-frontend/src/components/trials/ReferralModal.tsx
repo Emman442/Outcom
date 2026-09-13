@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { WorkTrial, UserWallet } from '../../types';
+import { Outcom, UserWallet } from '../../types';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
 import { UsdcDisplay } from '../common/UsdcIcon';
@@ -9,7 +9,7 @@ import { Copy, Check, Send, AlertCircle, Share2 } from 'lucide-react';
 interface ReferralModalProps {
   isOpen: boolean;
   onClose: () => void;
-  trial: WorkTrial | null;
+  trial: Outcom | null;
   wallet: UserWallet;
   onSendReferral?: (candidateAddress: string, message: string) => void;
 }
@@ -29,7 +29,7 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({
 
   if (!trial) return null;
 
-  const referralUrl = `https://worktrial.protocol/trial/${trial.id}?ref=${wallet.address.slice(0, 8)}`;
+  const referralUrl = `https://Outcom.protocol/trial/${trial.id}?ref=${wallet.address.slice(0, 8)}`;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

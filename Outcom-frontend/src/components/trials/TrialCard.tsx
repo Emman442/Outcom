@@ -1,14 +1,14 @@
 import React from 'react';
-import { WorkTrial } from '../../types';
+import { Outcom } from '../../types';
 import { UsdcDisplay } from '../common/UsdcIcon';
 import { DifficultyBadge } from '../common/Badge';
 import { SolanaIcon, LayerZeroIcon } from '../common/NetworkIcons';
 import { CheckCircle, Clock, Users, ArrowUpRight } from 'lucide-react';
 
 interface TrialCardProps {
-  trial: WorkTrial;
-  onSelect: (trial: WorkTrial) => void;
-  onRefer?: (trial: WorkTrial) => void;
+  trial: Outcom;
+  onSelect: (trial: Outcom) => void;
+  onRefer?: (trial: Outcom) => void;
 }
 
 export const TrialCard: React.FC<TrialCardProps> = ({ trial, onSelect, onRefer }) => {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { WorkTrialLogo, SolanaIcon } from '../common/NetworkIcons';
+import { OutcomLogo, SolanaIcon } from '../common/NetworkIcons';
 import { Button } from '../common/Button';
 import { UserWallet, NotificationItem, NavigationTab } from '../../types';
 import { Search, Bell, CheckCircle, ArrowUpRight, DollarSign, X } from 'lucide-react';
@@ -74,10 +74,10 @@ export const Navbar: React.FC<NavbarProps> = ({
             onClick={() => handleTabClick('landing')}
             className="flex items-center gap-2.5 group text-left cursor-pointer select-none"
           >
-            <WorkTrialLogo className="w-8 h-8 group-hover:border-[#0052FF] transition-colors" />
+            <OutcomLogo className="w-8 h-8 group-hover:border-[#0052FF] transition-colors" />
             <div className="flex flex-col">
               <span className="text-base font-bold text-white tracking-tight font-sans flex items-center gap-1.5">
-                WorkTrial
+                Outcom
                 <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-[#181B20] text-[#0052FF] border border-[#24282D]">
                   v1.2
                 </span>

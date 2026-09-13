@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { WorkTrial, VerificationVerdict, UserWallet } from '../../types';
+import { Outcom, VerificationVerdict, UserWallet } from '../../types';
 import { UsdcDisplay, UsdcIcon } from '../common/UsdcIcon';
 import { Button } from '../common/Button';
 import { Badge } from '../common/Badge';
@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 
 interface VerificationViewProps {
-  trial: WorkTrial;
+  trial: Outcom;
   verdict: VerificationVerdict;
   wallet: UserWallet;
   onBack: () => void;
@@ -187,7 +187,7 @@ export const VerificationView: React.FC<VerificationViewProps> = ({
                 </div>
                 <div>
                   <h2 className="text-2xl font-bold text-[#10B981] tracking-tight">
-                    WorkTrial Verified
+                    Outcom Verified
                   </h2>
                   <span className="text-xs text-[#9CA3AF] font-mono">
                     All outcome acceptance criteria passed
@@ -504,7 +504,7 @@ export const VerificationView: React.FC<VerificationViewProps> = ({
             {/* Escrow Vault */}
             <div className="p-3 rounded-lg bg-[#181B20] border border-[#24282D] text-center w-full sm:w-auto flex-1">
               <span className="text-[10px] text-[#6B7280] font-mono uppercase block">Source</span>
-              <span className="text-white font-medium font-mono">WorkTrial Escrow Vault</span>
+              <span className="text-white font-medium font-mono">Outcom Escrow Vault</span>
               <span className="text-[10px] text-[#9CA3AF] font-mono block mt-0.5">
                 500 USDC locked
               </span>
@@ -548,7 +548,7 @@ export const VerificationView: React.FC<VerificationViewProps> = ({
           </div>
 
           <p className="text-xs text-[#9CA3AF] leading-relaxed">
-            WorkTrial's core hiring logic and escrow execute on Solana, with LayerZero endpoint relays transmitting verified hiring state and cross-chain USDC delivery to recipient contracts.
+            Outcom's core hiring logic and escrow execute on Solana, with LayerZero endpoint relays transmitting verified hiring state and cross-chain USDC delivery to recipient contracts.
           </p>
 
           {/* Cross-chain Flow Diagram */}

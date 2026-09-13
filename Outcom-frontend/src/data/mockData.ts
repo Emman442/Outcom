@@ -1,4 +1,4 @@
-import { WorkTrial, CandidateApplicant, ReputationEvent, VerificationVerdict, UserWallet, NotificationItem } from '../types';
+import { Outcom, CandidateApplicant, ReputationEvent, VerificationVerdict, UserWallet, NotificationItem } from '../types';
 
 export const INITIAL_USER_WALLET: UserWallet = {
   isConnected: true,
@@ -9,7 +9,7 @@ export const INITIAL_USER_WALLET: UserWallet = {
   network: 'Solana Mainnet-beta',
 };
 
-export const MOCK_TRIALS: WorkTrial[] = [
+export const MOCK_TRIALS: Outcom[] = [
   {
     id: 'wt-sol-01',
     title: 'Build a Solana Payment Integration',

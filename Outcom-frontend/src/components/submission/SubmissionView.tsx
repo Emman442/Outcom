@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { WorkTrial, UserWallet, SubmissionData } from '../../types';
+import { Outcom, UserWallet, SubmissionData } from '../../types';
 import { UsdcDisplay } from '../common/UsdcIcon';
 import { Button } from '../common/Button';
 import { SolanaIcon } from '../common/NetworkIcons';
@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 
 interface SubmissionViewProps {
-  trial: WorkTrial;
+  trial: Outcom;
   wallet: UserWallet;
   onBack: () => void;
   onSubmit: (submission: SubmissionData) => void;
@@ -135,7 +135,7 @@ export const SubmissionView: React.FC<SubmissionViewProps> = ({
       <div className="p-5 bg-[#0D0F12] border border-[#24282D] rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2 text-xs text-[#9CA3AF] font-mono">
-            <span>WorkTrial Submission</span>
+            <span>Outcom Submission</span>
             <span>•</span>
             <span>ID: {trial.id}</span>
           </div>
@@ -161,7 +161,7 @@ export const SubmissionView: React.FC<SubmissionViewProps> = ({
             Deterministic Protocol Evaluation
           </h4>
           <p className="text-xs text-[#9CA3AF] leading-relaxed">
-            The WorkTrial protocol evaluates evidence against predefined requirements. Submitted repositories, deployments, and on-chain receipts are deterministically parsed by oracles and AI scoring agents to verify outcome completion before releasing escrow funds.
+            The Outcom protocol evaluates evidence against predefined requirements. Submitted repositories, deployments, and on-chain receipts are deterministically parsed by oracles and AI scoring agents to verify outcome completion before releasing escrow funds.
           </p>
         </div>
       </div>

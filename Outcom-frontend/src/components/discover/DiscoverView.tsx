@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { WorkTrial, Difficulty } from '../../types';
+import { Outcom, Difficulty } from '../../types';
 import { TrialCard } from '../trials/TrialCard';
 import { UsdcDisplay, UsdcIcon } from '../common/UsdcIcon';
 import { Button } from '../common/Button';
@@ -15,9 +15,9 @@ import {
 } from 'lucide-react';
 
 interface DiscoverViewProps {
-  trials: WorkTrial[];
-  onSelectTrial: (trial: WorkTrial) => void;
-  onOpenReferral: (trial: WorkTrial) => void;
+  trials: Outcom[];
+  onSelectTrial: (trial: Outcom) => void;
+  onOpenReferral: (trial: Outcom) => void;
   onCreateTrial: () => void;
 }
 
