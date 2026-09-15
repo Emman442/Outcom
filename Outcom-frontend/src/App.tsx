@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Routes, Route, useNavigate, useLocation, useParams, Navigate } from 'react-router-dom';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import {
-  NavigationTab,
   Outcom,
   UserWallet,
   SubmissionData,
@@ -13,7 +14,6 @@ import {
   MOCK_REPUTATION_TIMELINE,
   MOCK_LEADERBOARD,
   MOCK_VERIFICATION_SAMPLE,
-  INITIAL_USER_WALLET,
   MOCK_NOTIFICATIONS,
 } from './data/mockData';
 
@@ -34,10 +34,8 @@ import { ReputationView } from './components/reputation/ReputationView';
 import { EmployerDashboard } from './components/employer/EmployerDashboard';
 import { CreateTrialModal } from './components/employer/CreateTrialModal';
 import { LeaderboardView } from './components/leaderboard/LeaderboardView';
-import { SolanaIcon, LayerZeroIcon, OutcomLogo } from './components/common/NetworkIcons';
-import { UsdcIcon } from './components/common/UsdcIcon';
+import { OutcomLogo } from './components/common/NetworkIcons';
 
-// Sub-route wrapper components for trial-specific routes
 function TrialDetailRoute({
   trials,
   wallet,
@@ -149,31 +147,45 @@ export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Navigation & View State
+  const {
+    publicKey,
+    connected,
+    connecting,
+    disconnect,
+    wallet: adapterWallet,
+    connect,
+  } = useWallet();
+  const { setVisible: setAdapterWalletModalVisible } = useWalletModal();
+
+  const wallet = useMemo(
+    () => ({
+      isConnected: connected,
+      address: publicKey?.toBase58() ?? '',
+      publicKey: publicKey?.toBase58() ?? '',
+      walletName: adapterWallet?.adapter.name ?? '',
+      connecting,
+      network: 'Solana',
+    }),
+    [connected, publicKey, adapterWallet, connecting]
+  );
+
   const [trials, setTrials] = useState<Outcom[]>(MOCK_TRIALS);
   const [selectedTrial, setSelectedTrial] = useState<Outcom>(MOCK_TRIALS[0]);
   const [verdict, setVerdict] = useState<VerificationVerdict>(MOCK_VERIFICATION_SAMPLE);
 
-  // Wallet State
-  const [wallet, setWallet] = useState<UserWallet>(INITIAL_USER_WALLET);
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
 
-  // Referral Modal State
   const [referralTrial, setReferralTrial] = useState<Outcom | null>(null);
   const [isReferralModalOpen, setIsReferralModalOpen] = useState(false);
 
-  // Employer Create Trial Modal
   const [isCreateTrialModalOpen, setIsCreateTrialModalOpen] = useState(false);
 
-  // Transaction Inspector Modal
   const [inspectedTx, setInspectedTx] = useState<string | null>(null);
 
-  // Scroll to top automatically on route transitions
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [location.pathname]);
 
-  // Handlers
   const handleSelectTrial = (trial: Outcom) => {
     setSelectedTrial(trial);
     navigate(`/trials/${trial.id}`);
@@ -185,12 +197,10 @@ export default function App() {
   };
 
   const handleSendReferral = (candidateAddress: string, message: string) => {
-    // Log dispatch on-chain referral
     console.log('Referral dispatched on-chain for', candidateAddress, message);
   };
 
   const handleCommitToTrial = (trial: Outcom) => {
-    // Transition candidate status to IN PROGRESS
     setTrials((prev) =>
       prev.map((t) =>
         t.id === trial.id
@@ -211,7 +221,6 @@ export default function App() {
   };
 
   const handleCompleteSubmission = (submission: SubmissionData) => {
-    // Update trial status to submitted
     setTrials((prev) =>
       prev.map((t) =>
         t.id === submission.trialId ? { ...t, currentCandidateStatus: 'submitted' } : t
@@ -221,7 +230,6 @@ export default function App() {
 
     const currentTrial = trials.find((t) => t.id === submission.trialId) || selectedTrial;
 
-    // Prepare verdict with trial reward details
     setVerdict({
       ...MOCK_VERIFICATION_SAMPLE,
       trialId: currentTrial.id,
@@ -231,7 +239,6 @@ export default function App() {
       status: 'VERIFIED',
     });
 
-    // Navigate to verification climax view
     navigate(`/trials/${currentTrial.id}/verification`);
   };
 
@@ -259,7 +266,7 @@ export default function App() {
       network: 'Solana',
       skills: newTrialData.skills || ['Solana', 'Anchor', 'Rust'],
       status: 'open',
-      escrowAddress: newTrialData.escrowAddress || 'EscrowMock123',
+      escrowAddress: newTrialData.escrowAddress || '',
       createdAt: new Date().toISOString(),
     };
 
@@ -269,13 +276,35 @@ export default function App() {
     navigate(`/trials/${fullTrial.id}`);
   };
 
-  const handleSelectCandidate = (candidate: CandidateApplicant) => {
+  const handleSelectCandidate = (_candidate: CandidateApplicant) => {
     navigate('/reputation');
+  };
+
+  const handleConnectWallet = async () => {
+    if (adapterWallet) {
+      try {
+        await connect();
+      } catch (err) {
+        console.error('Wallet connect failed', err);
+        setAdapterWalletModalVisible(true);
+      }
+    } else {
+      setAdapterWalletModalVisible(true);
+    }
+    setIsWalletModalOpen(false);
+  };
+
+  const handleDisconnectWallet = async () => {
+    try {
+      await disconnect();
+    } catch (err) {
+      console.error('Wallet disconnect failed', err);
+    }
+    setIsWalletModalOpen(false);
   };
 
   return (
     <div className="min-h-screen bg-[#090A0C] text-[#D1D5DB] flex flex-col font-sans selection:bg-[#0052FF] selection:text-white">
-      {/* Persistent Navigation */}
       <Navbar
         onNavigate={(tab) => {
           if (tab === 'landing') navigate('/');
@@ -285,17 +314,15 @@ export default function App() {
           else if (tab === 'leaderboard') navigate('/leaderboard');
           else if (tab === 'reputation') navigate('/reputation');
         }}
-        wallet={wallet}
+        
         onOpenWalletModal={() => setIsWalletModalOpen(true)}
         onOpenSearch={() => navigate('/discover')}
         onOpenCreateTrial={() => setIsCreateTrialModalOpen(true)}
         notifications={MOCK_NOTIFICATIONS}
       />
 
-      {/* Main App Content Container with Router */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Routes>
-          {/* Landing / Protocol Gateway */}
           <Route
             path="/"
             element={
@@ -309,7 +336,6 @@ export default function App() {
             }
           />
 
-          {/* Discover Work Trials */}
           <Route
             path="/discover"
             element={
@@ -322,7 +348,6 @@ export default function App() {
             }
           />
 
-          {/* Candidate Workspace / Work Trials */}
           <Route
             path="/work-trials"
             element={
@@ -335,10 +360,8 @@ export default function App() {
               />
             }
           />
-          {/* Alias for workspace */}
           <Route path="/workspace" element={<Navigate to="/work-trials" replace />} />
 
-          {/* Trial Detail Route with URL Param */}
           <Route
             path="/trials/:trialId"
             element={
@@ -353,7 +376,6 @@ export default function App() {
             }
           />
 
-          {/* Trial Submission Route */}
           <Route
             path="/trials/:trialId/submit"
             element={
@@ -377,7 +399,6 @@ export default function App() {
             }
           />
 
-          {/* Autonomous Verification Route */}
           <Route
             path="/trials/:trialId/verification"
             element={
@@ -403,7 +424,6 @@ export default function App() {
             }
           />
 
-          {/* Candidate Reputation Protocol */}
           <Route
             path="/reputation"
             element={
@@ -415,7 +435,6 @@ export default function App() {
             }
           />
 
-          {/* Employer Dashboard */}
           <Route
             path="/employer"
             element={
@@ -431,7 +450,6 @@ export default function App() {
           />
           <Route path="/employer-hub" element={<Navigate to="/employer" replace />} />
 
-          {/* Verified Talent Leaderboard */}
           <Route
             path="/leaderboard"
             element={
@@ -442,30 +460,15 @@ export default function App() {
             }
           />
 
-          {/* Fallback Catch-all Route */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
 
-      {/* Global Modals */}
       <WalletModal
         isOpen={isWalletModalOpen}
         onClose={() => setIsWalletModalOpen(false)}
-        wallet={wallet}
-        onConnect={() => {
-          setWallet((prev) => ({
-            ...prev,
-            isConnected: true,
-          }));
-          setIsWalletModalOpen(false);
-        }}
-        onDisconnect={() => {
-          setWallet((prev) => ({
-            ...prev,
-            isConnected: false,
-          }));
-          setIsWalletModalOpen(false);
-        }}
+        onConnect={handleConnectWallet}
+        onDisconnect={handleDisconnectWallet}
       />
 
       {referralTrial && (
@@ -476,7 +479,6 @@ export default function App() {
             setReferralTrial(null);
           }}
           trial={referralTrial}
-          wallet={wallet}
           onSendReferral={handleSendReferral}
         />
       )}
@@ -484,7 +486,6 @@ export default function App() {
       <CreateTrialModal
         isOpen={isCreateTrialModalOpen}
         onClose={() => setIsCreateTrialModalOpen(false)}
-        wallet={wallet}
         onCreateTrial={handleCreateNewTrial}
       />
 
@@ -496,7 +497,6 @@ export default function App() {
         />
       )}
 
-      {/* Technical Protocol Footer */}
       <footer className="border-t border-[#24282D] bg-[#090A0C] py-8 text-xs text-[#9CA3AF] mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -509,22 +509,15 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-6 font-mono text-[11px]">
-            <div className="flex items-center gap-1.5 text-white">
-              <SolanaIcon className="w-3.5 h-3.5" />
-              <span>Solana Program v1.2</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-white">
-              <UsdcIcon className="w-3.5 h-3.5" />
-              <span>USDC Escrow PDA</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-white">
-              <LayerZeroIcon className="w-3.5 h-3.5" />
-              <span>LayerZero Relayer</span>
-            </div>
-          </div>
+            <span className="text-white text-sm">Powered by: </span>
 
-          <div className="text-[11px] text-[#6B7280]">
-            Autonomous Verification • Non-Custodial Rewards
+            <div className="flex items-center gap-1.5 text-white">
+              <img src="https://genlayer.com/brand/genlayer-logo-white.svg" className="w-25 h-10" />
+            </div>
+
+            <div className="flex items-center gap-1.5 text-white">
+              <img src="https://solana.com/src/img/branding/solanaLogo.svg/" alt="Solana Logo" className="w-25 h-10" />
+            </div>
           </div>
         </div>
       </footer>

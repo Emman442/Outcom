@@ -4,17 +4,7 @@ import { TrialCard } from '../trials/TrialCard';
 import { UsdcDisplay } from '../common/UsdcIcon';
 import { Button } from '../common/Button';
 import { SolanaIcon, LayerZeroIcon } from '../common/NetworkIcons';
-import {
-  ArrowRight,
-  ShieldCheck,
-  CheckCircle,
-  FileCode,
-  Users,
-  Coins,
-  Cpu,
-  Layers,
-  Sparkles,
-} from 'lucide-react';
+import {ArrowRight} from 'lucide-react';
 
 interface LandingViewProps {
   trials: Outcom[];
@@ -40,14 +30,14 @@ export const LandingView: React.FC<LandingViewProps> = ({
         {/* Subtle Protocol Pill */}
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#121417] border border-[#24282D] text-xs font-mono text-[#9CA3AF]">
           <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
-          <span>Outcom Protocol v1.2</span>
+          <span>Outcom Protocol </span>
           <span className="text-[#6B7280]">|</span>
           <span className="flex items-center gap-1 text-white">
             <SolanaIcon className="w-3 h-3" /> Solana Escrow
           </span>
           <span className="text-[#6B7280]">|</span>
           <span className="flex items-center gap-1 text-[#9CA3AF]">
-            <LayerZeroIcon className="w-3 h-3 text-white" /> LayerZero
+            <img src="https://genlayer.com/brand/genlayer-logo-white.svg" alt="genlayer logo" className='w-15 h-5' />
           </span>
         </div>
 

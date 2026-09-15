@@ -4,6 +4,8 @@ import { OutcomLogo, SolanaIcon } from '../common/NetworkIcons';
 import { Button } from '../common/Button';
 import { UserWallet, NotificationItem, NavigationTab } from '../../types';
 import { Search, Bell, CheckCircle, ArrowUpRight, DollarSign, X } from 'lucide-react';
+import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
+import { useWallet } from '@solana/wallet-adapter-react';
 
 export type ActiveTab = 'discover' | 'workspace' | 'employer' | 'leaderboard' | 'reputation';
 
@@ -12,7 +14,6 @@ interface NavbarProps {
   onNavigate?: (tab: NavigationTab) => void;
   activeTab?: ActiveTab;
   setActiveTab?: (tab: ActiveTab) => void;
-  wallet: UserWallet;
   onOpenWalletModal: () => void;
   onOpenSearch?: () => void;
   notifications?: NotificationItem[];
@@ -24,7 +25,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   onNavigate,
   activeTab,
   setActiveTab,
-  wallet,
   onOpenWalletModal,
   onOpenSearch,
   notifications = [],
@@ -33,7 +33,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [showNotifications, setShowNotifications] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-
+  const { connected, wallet, publicKey, disconnect } = useWallet()
   const safeNotifications = notifications || [];
   const unreadCount = safeNotifications.filter((n) => !n.read).length;
 
@@ -60,8 +60,8 @@ export const Navbar: React.FC<NavbarProps> = ({
     }
   };
 
-  const shortAddress = wallet?.address
-    ? `${wallet.address.slice(0, 4)}...${wallet.address.slice(-4)}`
+  const shortAddress = publicKey
+    ? `${publicKey.toString().slice(0, 4)}...${publicKey.toString().slice(-4)}`
     : '';
 
   return (
@@ -77,10 +77,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <OutcomLogo className="w-8 h-8 group-hover:border-[#0052FF] transition-colors" />
             <div className="flex flex-col">
               <span className="text-base font-bold text-white tracking-tight font-sans flex items-center gap-1.5">
-                Outcom
-                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-[#181B20] text-[#0052FF] border border-[#24282D]">
-                  v1.2
-                </span>
+                Outcom.
               </span>
               <span className="text-[10px] text-[#9CA3AF] tracking-wide font-mono -mt-1 hidden sm:inline">
                 Outcome Protocol
@@ -93,55 +90,50 @@ export const Navbar: React.FC<NavbarProps> = ({
             <Link
               to="/discover"
               onClick={() => handleTabClick('discover')}
-              className={`px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
-                current === 'discover'
+              className={`px-3 py-1.5 rounded-md transition-colors cursor-pointer ${current === 'discover'
                   ? 'text-white bg-[#181B20] border border-[#24282D]'
                   : 'text-[#9CA3AF] hover:text-white hover:bg-[#121417]'
-              }`}
+                }`}
             >
               Discover
             </Link>
             <Link
               to="/work-trials"
               onClick={() => handleTabClick('workspace')}
-              className={`px-3 py-1.5 rounded-md transition-colors cursor-pointer relative ${
-                current === 'workspace'
+              className={`px-3 py-1.5 rounded-md transition-colors cursor-pointer relative ${current === 'workspace'
                   ? 'text-white bg-[#181B20] border border-[#24282D]'
                   : 'text-[#9CA3AF] hover:text-white hover:bg-[#121417]'
-              }`}
+                }`}
             >
               Work Trials
             </Link>
             <Link
               to="/employer"
               onClick={() => handleTabClick('employer')}
-              className={`px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
-                current === 'employer'
+              className={`px-3 py-1.5 rounded-md transition-colors cursor-pointer ${current === 'employer'
                   ? 'text-white bg-[#181B20] border border-[#24282D]'
                   : 'text-[#9CA3AF] hover:text-white hover:bg-[#121417]'
-              }`}
+                }`}
             >
               Employer Hub
             </Link>
             <Link
               to="/leaderboard"
               onClick={() => handleTabClick('leaderboard')}
-              className={`px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
-                current === 'leaderboard'
+              className={`px-3 py-1.5 rounded-md transition-colors cursor-pointer ${current === 'leaderboard'
                   ? 'text-white bg-[#181B20] border border-[#24282D]'
                   : 'text-[#9CA3AF] hover:text-white hover:bg-[#121417]'
-              }`}
+                }`}
             >
               Leaderboard
             </Link>
             <Link
               to="/reputation"
               onClick={() => handleTabClick('reputation')}
-              className={`px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
-                current === 'reputation'
+              className={`px-3 py-1.5 rounded-md transition-colors cursor-pointer ${current === 'reputation'
                   ? 'text-white bg-[#181B20] border border-[#24282D]'
                   : 'text-[#9CA3AF] hover:text-white hover:bg-[#121417]'
-              }`}
+                }`}
             >
               Reputation
             </Link>
@@ -245,7 +237,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           {/* Solana Wallet Button */}
-          {wallet?.isConnected ? (
+          {connected && publicKey ? (
             <button
               onClick={onOpenWalletModal}
               className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#121417] hover:bg-[#181B20] border border-[#24282D] hover:border-[#3A414A] transition-colors cursor-pointer group"
@@ -257,14 +249,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               </span>
             </button>
           ) : (
-            <Button
-              variant="primary"
-              size="sm"
-              icon={<SolanaIcon className="w-3.5 h-3.5 text-white" />}
-              onClick={onOpenWalletModal}
-            >
-              Connect Wallet
-            </Button>
+
+            <WalletMultiButton className="h-9 px-4 bg-[#121417] hover:bg-[#181B20] border border-[#24282D] hover:border-[#31373E] text-xs font-medium text-[#9CA3AF] hover:text-white rounded-lg transition-colors font-sans shadow-none" />
           )}
         </div>
       </div>
@@ -274,45 +260,40 @@ export const Navbar: React.FC<NavbarProps> = ({
         <Link
           to="/discover"
           onClick={() => handleTabClick('discover')}
-          className={`py-1 px-2.5 rounded ${
-            current === 'discover' ? 'text-[#3B82F6] font-semibold bg-[#121417]' : 'text-[#9CA3AF]'
-          }`}
+          className={`py-1 px-2.5 rounded ${current === 'discover' ? 'text-[#3B82F6] font-semibold bg-[#121417]' : 'text-[#9CA3AF]'
+            }`}
         >
           Discover
         </Link>
         <Link
           to="/work-trials"
           onClick={() => handleTabClick('workspace')}
-          className={`py-1 px-2.5 rounded ${
-            current === 'workspace' ? 'text-[#3B82F6] font-semibold bg-[#121417]' : 'text-[#9CA3AF]'
-          }`}
+          className={`py-1 px-2.5 rounded ${current === 'workspace' ? 'text-[#3B82F6] font-semibold bg-[#121417]' : 'text-[#9CA3AF]'
+            }`}
         >
           Work Trials
         </Link>
         <Link
           to="/employer"
           onClick={() => handleTabClick('employer')}
-          className={`py-1 px-2.5 rounded ${
-            current === 'employer' ? 'text-[#3B82F6] font-semibold bg-[#121417]' : 'text-[#9CA3AF]'
-          }`}
+          className={`py-1 px-2.5 rounded ${current === 'employer' ? 'text-[#3B82F6] font-semibold bg-[#121417]' : 'text-[#9CA3AF]'
+            }`}
         >
           Employer Hub
         </Link>
         <Link
           to="/leaderboard"
           onClick={() => handleTabClick('leaderboard')}
-          className={`py-1 px-2.5 rounded ${
-            current === 'leaderboard' ? 'text-[#3B82F6] font-semibold bg-[#121417]' : 'text-[#9CA3AF]'
-          }`}
+          className={`py-1 px-2.5 rounded ${current === 'leaderboard' ? 'text-[#3B82F6] font-semibold bg-[#121417]' : 'text-[#9CA3AF]'
+            }`}
         >
           Leaderboard
         </Link>
         <Link
           to="/reputation"
           onClick={() => handleTabClick('reputation')}
-          className={`py-1 px-2.5 rounded ${
-            current === 'reputation' ? 'text-[#3B82F6] font-semibold bg-[#121417]' : 'text-[#9CA3AF]'
-          }`}
+          className={`py-1 px-2.5 rounded ${current === 'reputation' ? 'text-[#3B82F6] font-semibold bg-[#121417]' : 'text-[#9CA3AF]'
+            }`}
         >
           Reputation
         </Link>

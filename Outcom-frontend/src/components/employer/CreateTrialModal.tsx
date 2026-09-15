@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Outcom, UserWallet, Difficulty } from '../../types';
+import React, { useEffect, useState } from 'react';
+import { Outcom, Difficulty } from '../../types';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
 import { UsdcDisplay, UsdcIcon } from '../common/UsdcIcon';
@@ -8,35 +8,38 @@ import {
   ChevronRight,
   ChevronLeft,
   CheckCircle2,
-  Plus,
   Trash2,
   ShieldCheck,
   AlertCircle,
 } from 'lucide-react';
+import { useConnection, useWallet } from '@solana/wallet-adapter-react';
+import { getDevnetUsdcBalance } from '../../utils/getDevnetUsdcBalance';
 
 interface CreateTrialModalProps {
   isOpen: boolean;
   onClose: () => void;
-  wallet: UserWallet;
   onCreateTrial: (newTrial: Partial<Outcom>) => void;
 }
 
 export const CreateTrialModal: React.FC<CreateTrialModalProps> = ({
   isOpen,
   onClose,
-  wallet,
   onCreateTrial,
 }) => {
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4>(1);
+  const { publicKey, connected } = useWallet();
+  const { connection } = useConnection();
 
-  // Step 1: Work Definition
+  const [usdcBalance, setUsdcBalance] = useState<number>(0);
+  const [isBalanceLoading, setIsBalanceLoading] = useState(false);
+  const [balanceError, setBalanceError] = useState<string | null>(null);
+
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState<Outcom['category']>('Full-Stack');
   const [skills, setSkills] = useState('Solana, Anchor, Rust, TypeScript');
   const [difficulty, setDifficulty] = useState<Difficulty>('Advanced');
 
-  // Step 2: Outcome Definition
   const [objective, setObjective] = useState('');
   const [requirementsList, setRequirementsList] = useState<string[]>([
     'Anchor smart contract deployed on Solana Devnet',
@@ -53,12 +56,10 @@ export const CreateTrialModal: React.FC<CreateTrialModalProps> = ({
   ]);
   const [newDod, setNewDod] = useState('');
 
-  // Step 3: Set Reward
   const [totalReward, setTotalReward] = useState<number>(500);
   const [candidateReward, setCandidateReward] = useState<number>(450);
   const [referralReward, setReferralReward] = useState<number>(50);
 
-  // Sync rewards helper
   const handleCandidateRewardChange = (val: number) => {
     setCandidateReward(val);
     setTotalReward(val + referralReward);
@@ -69,15 +70,44 @@ export const CreateTrialModal: React.FC<CreateTrialModalProps> = ({
     setTotalReward(candidateReward + val);
   };
 
-  // Step 4: Funding & Publication Transaction State
   const [isFunding, setIsFunding] = useState(false);
-  const [txStep, setTxStep] = useState<
-    'idle' | 'approving' | 'confirming' | 'published'
-  >('idle');
+  const [txStep, setTxStep] = useState<'idle' | 'approving' | 'confirming' | 'published'>('idle');
 
-  const platformFee = Math.round(totalReward * 0.025); // 2.5% protocol fee
+  const platformFee = Math.round(totalReward * 0.025);
   const totalFundingRequired = totalReward + platformFee;
-  const hasSufficientBalance = wallet.usdcBalance >= totalFundingRequired;
+  const hasSufficientBalance = connected && usdcBalance >= totalFundingRequired;
+
+  useEffect(() => {
+    if (!isOpen || !publicKey) {
+      setUsdcBalance(0);
+      setBalanceError(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadBalance = async () => {
+      setIsBalanceLoading(true);
+      setBalanceError(null);
+      try {
+        const { uiAmount } = await getDevnetUsdcBalance(publicKey.toBase58(), connection);
+        if (!cancelled) setUsdcBalance(uiAmount);
+      } catch (err) {
+        console.error(err);
+        if (!cancelled) {
+          setUsdcBalance(0);
+          setBalanceError('Could not load Devnet USDC balance');
+        }
+      } finally {
+        if (!cancelled) setIsBalanceLoading(false);
+      }
+    };
+
+    void loadBalance();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, publicKey, connection]);
 
   const handleNext = () => {
     if (currentStep < 4) {
@@ -112,45 +142,55 @@ export const CreateTrialModal: React.FC<CreateTrialModalProps> = ({
   };
 
   const handleFundAndPublish = () => {
-    setIsFunding(true);
-    setTxStep('approving');
+    if (!hasSufficientBalance) return;
 
-    setTimeout(() => {
-      setTxStep('confirming');
-    }, 1200);
+    // setIsFunding(true);
+    // setTxStep('approving');
 
-    setTimeout(() => {
-      setTxStep('published');
-      setIsFunding(false);
+    // setTimeout(() => {
+    //   setTxStep('confirming');
+    // }, 1200);
 
-      // Create trial record
-      const newTrialData: Partial<Outcom> = {
-        title: title || 'Production Work Trial',
-        company: 'Example Labs',
-        companyLogo: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=80',
-        isCompanyVerified: true,
-        category,
-        description: description || 'Complete outcome-based trial specification.',
-        objective: objective || 'Fulfill trial acceptance criteria and submit verifiable evidence.',
-        requirements: requirementsList.map((r, i) => ({ id: `req-${i}`, text: r, mandatory: true })),
-        definitionOfDone: definitionOfDoneList.map((d, i) => ({ id: `dod-${i}`, text: d })),
-        totalReward,
-        candidateReward,
-        referralReward,
-        applicantsCount: 0,
-        deadline: '7d 00h 00m',
-        deadlineTimestamp: Date.now() + 7 * 86400000,
-        difficulty,
-        isRemote: true,
-        network: 'Solana',
-        skills: skills.split(',').map((s) => s.trim()),
-        status: 'open',
-        escrowAddress: `Escrow${Math.random().toString(36).substring(2, 12)}`,
-        createdAt: new Date().toISOString(),
-      };
+    // setTimeout(() => {
+    //   setTxStep('published');
+    //   setIsFunding(false);
 
-      onCreateTrial(newTrialData);
-    }, 2400);
+    
+      //   title: title || 'Production Work Trial',
+      //   company: 'Example Labs',
+      //   companyLogo:
+      //     'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=80',
+      //   isCompanyVerified: true,
+      //   category,
+      //   description: description || 'Complete outcome-based trial specification.',
+      //   objective:
+      //     objective || 'Fulfill trial acceptance criteria and submit verifiable evidence.',
+      //   requirements: requirementsList.map((r, i) => ({
+      //     id: `req-${i}`,
+      //     text: r,
+      //     mandatory: true,
+      //   })),
+      //   definitionOfDone: definitionOfDoneList.map((d, i) => ({
+      //     id: `dod-${i}`,
+      //     text: d,
+      //   })),
+      //   totalReward,
+      //   candidateReward,
+      //   referralReward,
+      //   applicantsCount: 0,
+      //   deadline: '7d 00h 00m',
+      //   deadlineTimestamp: Date.now() + 7 * 86400000,
+      //   difficulty,
+      //   isRemote: true,
+      //   network: 'Solana',
+      //   skills: skills.split(',').map((s) => s.trim()),
+      //   status: 'open',
+      //   escrowAddress: `Escrow${Math.random().toString(36).substring(2, 12)}`,
+      //   createdAt: new Date().toISOString(),
+      // };
+
+      // onCreateTrial(newTrialData);
+    // }, 2400);
   };
 
   const resetForm = () => {
@@ -168,7 +208,6 @@ export const CreateTrialModal: React.FC<CreateTrialModalProps> = ({
       maxWidth="xl"
     >
       <div className="space-y-6">
-        {/* Step Indicator Bar */}
         <div className="flex items-center justify-between border-b border-[#24282D] pb-3 text-xs font-mono">
           {[
             { step: 1, label: '1. Define Work' },
@@ -182,8 +221,8 @@ export const CreateTrialModal: React.FC<CreateTrialModalProps> = ({
                 currentStep === item.step
                   ? 'text-[#3B82F6] font-semibold'
                   : currentStep > item.step
-                  ? 'text-[#10B981]'
-                  : 'text-[#6B7280]'
+                    ? 'text-[#10B981]'
+                    : 'text-[#6B7280]'
               }`}
             >
               <span>{item.label}</span>
@@ -192,7 +231,6 @@ export const CreateTrialModal: React.FC<CreateTrialModalProps> = ({
           ))}
         </div>
 
-        {/* Step 1: Define the work */}
         {currentStep === 1 && (
           <div className="space-y-4">
             <div>
@@ -215,7 +253,7 @@ export const CreateTrialModal: React.FC<CreateTrialModalProps> = ({
                 </label>
                 <select
                   value={category}
-                  onChange={(e) => setCategory(e.target.value as any)}
+                  onChange={(e) => setCategory(e.target.value as Outcom['category'])}
                   className="w-full bg-[#121417] border border-[#24282D] focus:border-[#0052FF] focus:outline-none rounded-lg px-3 py-2 text-xs text-white"
                 >
                   <option value="Smart Contracts">Smart Contracts</option>
@@ -272,7 +310,6 @@ export const CreateTrialModal: React.FC<CreateTrialModalProps> = ({
           </div>
         )}
 
-        {/* Step 2: Define the outcome */}
         {currentStep === 2 && (
           <div className="space-y-4">
             <div>
@@ -288,7 +325,6 @@ export const CreateTrialModal: React.FC<CreateTrialModalProps> = ({
               />
             </div>
 
-            {/* Requirements Checklist */}
             <div className="p-4 bg-[#121417] border border-[#24282D] rounded-xl space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-white">Technical Requirements</span>
@@ -321,7 +357,9 @@ export const CreateTrialModal: React.FC<CreateTrialModalProps> = ({
                   placeholder="Add specific requirement..."
                   value={newReq}
                   onChange={(e) => setNewReq(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddRequirement())}
+                  onKeyDown={(e) =>
+                    e.key === 'Enter' && (e.preventDefault(), handleAddRequirement())
+                  }
                   className="flex-1 bg-[#0D0F12] border border-[#24282D] focus:border-[#0052FF] focus:outline-none rounded-md px-3 py-1.5 text-xs text-white placeholder:text-[#6B7280]"
                 />
                 <Button type="button" variant="secondary" size="xs" onClick={handleAddRequirement}>
@@ -330,7 +368,6 @@ export const CreateTrialModal: React.FC<CreateTrialModalProps> = ({
               </div>
             </div>
 
-            {/* Definition of Done Checklist */}
             <div className="p-4 bg-[#121417] border border-[#24282D] rounded-xl space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-white">Definition of Done</span>
@@ -372,7 +409,6 @@ export const CreateTrialModal: React.FC<CreateTrialModalProps> = ({
           </div>
         )}
 
-        {/* Step 3: Set Reward */}
         {currentStep === 3 && (
           <div className="space-y-5">
             <div className="p-4 bg-[#121417] border border-[#24282D] rounded-xl flex items-center justify-between">
@@ -387,9 +423,7 @@ export const CreateTrialModal: React.FC<CreateTrialModalProps> = ({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="p-4 bg-[#0D0F12] border border-[#24282D] rounded-xl space-y-2">
-                <label className="block text-xs font-semibold text-white">
-                  Candidate Reward
-                </label>
+                <label className="block text-xs font-semibold text-white">Candidate Reward</label>
                 <div className="flex items-center gap-2">
                   <UsdcIcon className="w-5 h-5" />
                   <input
@@ -408,9 +442,7 @@ export const CreateTrialModal: React.FC<CreateTrialModalProps> = ({
               </div>
 
               <div className="p-4 bg-[#0D0F12] border border-[#24282D] rounded-xl space-y-2">
-                <label className="block text-xs font-semibold text-white">
-                  Referral Reward
-                </label>
+                <label className="block text-xs font-semibold text-white">Referral Reward</label>
                 <div className="flex items-center gap-2">
                   <UsdcIcon className="w-5 h-5" />
                   <input
@@ -429,7 +461,6 @@ export const CreateTrialModal: React.FC<CreateTrialModalProps> = ({
               </div>
             </div>
 
-            {/* Visual allocation */}
             <div className="p-3.5 bg-[#121417] border border-[#24282D] rounded-lg space-y-2">
               <div className="flex items-center justify-between text-xs text-[#9CA3AF] font-mono">
                 <span>Candidate Split: {Math.round((candidateReward / totalReward) * 100)}%</span>
@@ -449,7 +480,6 @@ export const CreateTrialModal: React.FC<CreateTrialModalProps> = ({
           </div>
         )}
 
-        {/* Step 4: Fund trial */}
         {currentStep === 4 && (
           <div className="space-y-5">
             {txStep === 'published' ? (
@@ -458,9 +488,12 @@ export const CreateTrialModal: React.FC<CreateTrialModalProps> = ({
                   <CheckCircle2 className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-white">Work Trial Published & Escrow Locked</h3>
+                  <h3 className="text-lg font-bold text-white">
+                    Work Trial Published & Escrow Locked
+                  </h3>
                   <p className="text-xs text-[#9CA3AF] mt-1 max-w-sm mx-auto">
-                    {totalFundingRequired} USDC is now locked in the Outcom Solana escrow contract. Candidates can discover and commit to this trial immediately.
+                    {totalFundingRequired} USDC is now locked in the Outcom Solana escrow contract.
+                    Candidates can discover and commit to this trial immediately.
                   </p>
                 </div>
                 <div className="p-3 bg-[#121417] border border-[#24282D] rounded-lg font-mono text-xs text-[#9CA3AF]">
@@ -495,23 +528,39 @@ export const CreateTrialModal: React.FC<CreateTrialModalProps> = ({
                   </div>
                 </div>
 
-                {/* Wallet Balance Check */}
                 <div className="p-3.5 bg-[#0D0F12] border border-[#24282D] rounded-lg flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
                     <SolanaIcon className="w-4 h-4" />
-                    <span className="text-[#9CA3AF]">Your Solana Wallet Balance:</span>
+                    <span className="text-[#9CA3AF]">Your Devnet USDC Balance:</span>
                   </div>
-                  <UsdcDisplay amount={wallet.usdcBalance} size="sm" />
+                  {isBalanceLoading ? (
+                    <span className="text-[#9CA3AF] font-mono">Loading…</span>
+                  ) : (
+                    <UsdcDisplay amount={usdcBalance} size="sm" />
+                  )}
                 </div>
 
-                {!hasSufficientBalance && (
+                {!connected && (
+                  <div className="p-3 bg-[#F59E0B]/10 border border-[#F59E0B]/30 rounded-lg flex items-center gap-2 text-xs text-[#F59E0B]">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    <span>Connect a Solana wallet to fund this trial.</span>
+                  </div>
+                )}
+
+                {balanceError && (
+                  <div className="p-3 bg-[#EF4444]/10 border border-[#EF4444]/30 rounded-lg flex items-center gap-2 text-xs text-[#EF4444]">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    <span>{balanceError}</span>
+                  </div>
+                )}
+
+                {connected && !isBalanceLoading && !hasSufficientBalance && (
                   <div className="p-3 bg-[#EF4444]/10 border border-[#EF4444]/30 rounded-lg flex items-center gap-2 text-xs text-[#EF4444]">
                     <AlertCircle className="w-4 h-4 flex-shrink-0" />
                     <span>Insufficient USDC in connected wallet to fund this trial escrow.</span>
                   </div>
                 )}
 
-                {/* Transaction Status during submit */}
                 {isFunding && (
                   <div className="p-3.5 bg-[#121417] border border-[#0052FF]/30 rounded-lg space-y-2">
                     <div className="flex items-center gap-2 text-xs text-[#3B82F6]">
@@ -529,7 +578,6 @@ export const CreateTrialModal: React.FC<CreateTrialModalProps> = ({
           </div>
         )}
 
-        {/* Modal Actions */}
         {txStep !== 'published' && (
           <div className="flex items-center justify-between pt-4 border-t border-[#24282D]">
             {currentStep > 1 ? (
@@ -568,7 +616,7 @@ export const CreateTrialModal: React.FC<CreateTrialModalProps> = ({
                   variant="primary"
                   size="md"
                   isLoading={isFunding}
-                  disabled={!hasSufficientBalance}
+                  disabled={!hasSufficientBalance || isBalanceLoading}
                   onClick={handleFundAndPublish}
                   icon={<ShieldCheck className="w-4 h-4" />}
                 >

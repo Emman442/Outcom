@@ -1,15 +1,16 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { UserWallet } from '../../types';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
 import { UsdcDisplay } from '../common/UsdcIcon';
 import { SolanaIcon } from '../common/NetworkIcons';
 import { Copy, ExternalLink, Check, LogOut, ArrowUpRight, ShieldCheck } from 'lucide-react';
+import { useConnection, useWallet } from '@solana/wallet-adapter-react';
+import { getDevnetUsdcBalance } from '@/src/utils/getDevnetUsdcBalance';
 
 interface WalletModalProps {
   isOpen: boolean;
   onClose: () => void;
-  wallet: UserWallet;
   onDisconnect: () => void;
   onConnect: () => void;
 }
@@ -17,32 +18,65 @@ interface WalletModalProps {
 export const WalletModal: React.FC<WalletModalProps> = ({
   isOpen,
   onClose,
-  wallet,
   onDisconnect,
   onConnect,
 }) => {
   const [copied, setCopied] = useState(false);
-
+  const { publicKey, connected } = useWallet();
+  const { connection } = useConnection();
+  const [usdcBalance, setUsdcBalance] = useState<number>(0);
+  const [isBalanceLoading, setIsBalanceLoading] = useState(false);
+  console.log(connected,publicKey?.toString())
   const copyAddress = () => {
-    if (!wallet.address) return;
-    navigator.clipboard.writeText(wallet.address);
+    if (!publicKey) return;
+    navigator.clipboard.writeText(publicKey?.toString());
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const shortAddress = wallet.address
-    ? `${wallet.address.slice(0, 4)}...${wallet.address.slice(-4)}`
+  const shortAddress = publicKey
+    ? `${publicKey?.toString().slice(0, 4)}...${publicKey?.toString().slice(-4)}`
     : '';
+
+      useEffect(() => {
+        if (!isOpen || !publicKey) {
+          setUsdcBalance(0);
+          return;
+        }
+    
+        let cancelled = false;
+    
+        const loadBalance = async () => {
+          setIsBalanceLoading(true);
+          try {
+            const { uiAmount } = await getDevnetUsdcBalance(publicKey.toBase58(), connection);
+            if (!cancelled) setUsdcBalance(uiAmount);
+          } catch (err) {
+            console.error(err);
+            if (!cancelled) {
+              setUsdcBalance(0);
+            }
+          } finally {
+            if (!cancelled) setIsBalanceLoading(false);
+          }
+        };
+    
+        void loadBalance();
+        return () => {
+          cancelled = true;
+        };
+      }, [isOpen, publicKey, connection]);
+    
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={wallet.isConnected ? 'Solana Wallet' : 'Connect Wallet'}
-      subtitle={wallet.isConnected ? 'Connected via Phantom (Solana)' : 'Choose your preferred Solana wallet'}
+      title={connected ? 'Solana Wallet' : 'Connect Wallet'}
+      subtitle={connected ? 'Connected via Phantom (Solana)' : 'Choose your preferred Solana wallet'}
       maxWidth="md"
     >
-      {!wallet.isConnected ? (
+      {!connected ? (
         <div className="space-y-3">
           <p className="text-sm text-[#9CA3AF]">
             Connect your Solana wallet to accept work trials, submit proof of work, and receive automated USDC payouts.
@@ -91,7 +125,7 @@ export const WalletModal: React.FC<WalletModalProps> = ({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
-                <span className="text-xs text-[#9CA3AF]">{wallet.network}</span>
+                <span className="text-xs text-[#9CA3AF]">Solana Devnet</span>
               </div>
               <div className="flex items-center gap-1">
                 <button
@@ -102,7 +136,7 @@ export const WalletModal: React.FC<WalletModalProps> = ({
                   <span className="font-mono text-[11px]">{copied ? 'Copied' : shortAddress}</span>
                 </button>
                 <a
-                  href={`https://solscan.io/account/${wallet.address}`}
+                  href={`https://solscan.io/account/${publicKey?.toString()}`}
                   target="_blank"
                   rel="noreferrer"
                   className="p-1 text-[#9CA3AF] hover:text-white rounded hover:bg-[#181B20] transition-colors"
@@ -118,19 +152,8 @@ export const WalletModal: React.FC<WalletModalProps> = ({
           <div className="grid grid-cols-2 gap-3">
             <div className="p-3.5 bg-[#121417] border border-[#24282D] rounded-lg">
               <div className="text-xs text-[#9CA3AF] mb-1 font-medium">USDC Balance</div>
-              <UsdcDisplay amount={wallet.usdcBalance} size="md" />
+              <UsdcDisplay amount={usdcBalance} size="md" />
               <div className="text-[11px] text-[#6B7280] mt-1 font-mono">SPL Token • 6 Decimals</div>
-            </div>
-
-            <div className="p-3.5 bg-[#121417] border border-[#24282D] rounded-lg">
-              <div className="text-xs text-[#9CA3AF] mb-1 font-medium flex items-center justify-between">
-                <span>SOL Balance</span>
-                <SolanaIcon className="w-3 h-3 opacity-80" />
-              </div>
-              <div className="text-base font-semibold font-mono text-white">
-                {wallet.solBalance.toFixed(2)} <span className="text-xs font-sans text-[#9CA3AF]">SOL</span>
-              </div>
-              <div className="text-[11px] text-[#6B7280] mt-1">For network gas & rent</div>
             </div>
           </div>
 
@@ -146,7 +169,8 @@ export const WalletModal: React.FC<WalletModalProps> = ({
               </div>
             </div>
             <div className="font-mono text-base font-bold text-white bg-[#181B20] px-2.5 py-1 rounded border border-[#24282D]">
-              {wallet.reputationScore}
+              {/* {wallet.reputationScore} */}
+              100
             </div>
           </div>
 
@@ -185,7 +209,7 @@ export const WalletModal: React.FC<WalletModalProps> = ({
           {/* Disconnect Action */}
           <div className="pt-2 flex justify-between items-center border-t border-[#24282D]">
             <a
-              href={`https://solscan.io/account/${wallet.address}`}
+              href={`https://solscan.io/account/${publicKey}`}
               target="_blank"
               rel="noreferrer"
               className="text-xs text-[#3B82F6] hover:underline flex items-center gap-1"
