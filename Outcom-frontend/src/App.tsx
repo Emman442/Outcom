@@ -16,7 +16,6 @@ import {
   MOCK_VERIFICATION_SAMPLE,
   MOCK_NOTIFICATIONS,
 } from './data/mockData';
-
 // Layout & Common
 import { Navbar } from './components/layout/Navbar';
 import { WalletModal } from './components/wallet/WalletModal';
@@ -242,39 +241,6 @@ export default function App() {
     navigate(`/trials/${currentTrial.id}/verification`);
   };
 
-  const handleCreateNewTrial = (newTrialData: Partial<Outcom>) => {
-    const fullTrial: Outcom = {
-      id: `wt-custom-${Date.now().toString().slice(-4)}`,
-      title: newTrialData.title || 'Custom Work Trial',
-      company: 'Example Labs',
-      companyLogo:
-        'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=80',
-      isCompanyVerified: true,
-      category: newTrialData.category || 'Full-Stack',
-      description: newTrialData.description || 'Full-stack outcome verification trial.',
-      objective: newTrialData.objective || 'Complete all acceptance requirements.',
-      requirements: newTrialData.requirements || [],
-      definitionOfDone: newTrialData.definitionOfDone || [],
-      totalReward: newTrialData.totalReward || 500,
-      candidateReward: newTrialData.candidateReward || 450,
-      referralReward: newTrialData.referralReward || 50,
-      applicantsCount: 0,
-      deadline: '7d 00h 00m',
-      deadlineTimestamp: Date.now() + 7 * 86400000,
-      difficulty: newTrialData.difficulty || 'Advanced',
-      isRemote: true,
-      network: 'Solana',
-      skills: newTrialData.skills || ['Solana', 'Anchor', 'Rust'],
-      status: 'open',
-      escrowAddress: newTrialData.escrowAddress || '',
-      createdAt: new Date().toISOString(),
-    };
-
-    setTrials([fullTrial, ...trials]);
-    setIsCreateTrialModalOpen(false);
-    setSelectedTrial(fullTrial);
-    navigate(`/trials/${fullTrial.id}`);
-  };
 
   const handleSelectCandidate = (_candidate: CandidateApplicant) => {
     navigate('/reputation');
@@ -486,7 +452,6 @@ export default function App() {
       <CreateTrialModal
         isOpen={isCreateTrialModalOpen}
         onClose={() => setIsCreateTrialModalOpen(false)}
-        onCreateTrial={handleCreateNewTrial}
       />
 
       {inspectedTx && (

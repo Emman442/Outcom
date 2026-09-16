@@ -6,10 +6,10 @@
     "frontend"
   ],
   "scripts": {
-    "dev": "cd frontend && npm run dev",
-    "build": "cd frontend && npm run build",
-    "start": "cd frontend && npm run start",
-    "lint": "cd frontend && npm run lint",
+    "dev": "cd outcom-frontend && npm run dev",
+    "build": "cd outcom-frontend && npm run build",
+    "start": "cd outcom-frontend && npm run start",
+    "lint": "cd outcom-frontend && npm run lint",
     "deploy": "genlayer deploy"
   },
   "devDependencies": {

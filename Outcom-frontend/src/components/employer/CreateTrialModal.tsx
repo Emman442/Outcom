@@ -12,24 +12,30 @@ import {
   ShieldCheck,
   AlertCircle,
 } from 'lucide-react';
-import { useConnection, useWallet } from '@solana/wallet-adapter-react';
+import { useWallet } from '@solana/wallet-adapter-react';
 import { getDevnetUsdcBalance } from '../../utils/getDevnetUsdcBalance';
+import { useProgram } from '@/src/hooks/solana/use-program';
+import { useSolanaConnection } from '@/src/hooks/solana/useConnection';
+import { toast } from 'sonner';
+import { PublicKey } from '@solana/web3.js';
+import * as anchor from "@coral-xyz/anchor";
+import { getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import { useTrials } from '@/src/hooks/solana/useTrials';
 
 interface CreateTrialModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreateTrial: (newTrial: Partial<Outcom>) => void;
 }
 
 export const CreateTrialModal: React.FC<CreateTrialModalProps> = ({
   isOpen,
   onClose,
-  onCreateTrial,
 }) => {
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4>(1);
   const { publicKey, connected } = useWallet();
-  const { connection } = useConnection();
-
+  const { program, provider } = useProgram();
+  const connection = useSolanaConnection()
+  const { nextId, fetchTrials } = useTrials();
   const [usdcBalance, setUsdcBalance] = useState<number>(0);
   const [isBalanceLoading, setIsBalanceLoading] = useState(false);
   const [balanceError, setBalanceError] = useState<string | null>(null);
@@ -76,6 +82,13 @@ export const CreateTrialModal: React.FC<CreateTrialModalProps> = ({
   const platformFee = Math.round(totalReward * 0.025);
   const totalFundingRequired = totalReward + platformFee;
   const hasSufficientBalance = connected && usdcBalance >= totalFundingRequired;
+
+  const USDC_MINT = new PublicKey(import.meta.env.VITE_USDC_MINT);
+  const USDC_DECIMALS = 6;
+
+  function toUsdc(amount: number) {
+    return new anchor.BN(Math.round(amount * 10 ** USDC_DECIMALS));
+  }
 
   useEffect(() => {
     if (!isOpen || !publicKey) {
@@ -141,56 +154,94 @@ export const CreateTrialModal: React.FC<CreateTrialModalProps> = ({
     setDefinitionOfDoneList(definitionOfDoneList.filter((_, i) => i !== idx));
   };
 
-  const handleFundAndPublish = () => {
+  const handleFundAndPublish = async () => {
+    if (!program || !publicKey || !provider) return;
+    if (!title.trim() || definitionOfDoneList.length === 0) return;
     if (!hasSufficientBalance) return;
 
-    // setIsFunding(true);
-    // setTxStep('approving');
+    const trialId = nextId; // trial_1, trial_2, ...
+    if (trialId.length > 32) {
+      console.error("trial_id too long");
+      return;
+    }
 
-    // setTimeout(() => {
-    //   setTxStep('confirming');
-    // }, 1200);
+    try {
+      setIsFunding(true);
+      setTxStep("approving");
 
-    // setTimeout(() => {
-    //   setTxStep('published');
-    //   setIsFunding(false);
+      const employerAta = getAssociatedTokenAddressSync(USDC_MINT, publicKey);
 
-    
-      //   title: title || 'Production Work Trial',
-      //   company: 'Example Labs',
-      //   companyLogo:
-      //     'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=80',
-      //   isCompanyVerified: true,
-      //   category,
-      //   description: description || 'Complete outcome-based trial specification.',
-      //   objective:
-      //     objective || 'Fulfill trial acceptance criteria and submit verifiable evidence.',
-      //   requirements: requirementsList.map((r, i) => ({
-      //     id: `req-${i}`,
-      //     text: r,
-      //     mandatory: true,
-      //   })),
-      //   definitionOfDone: definitionOfDoneList.map((d, i) => ({
-      //     id: `dod-${i}`,
-      //     text: d,
-      //   })),
-      //   totalReward,
-      //   candidateReward,
-      //   referralReward,
-      //   applicantsCount: 0,
-      //   deadline: '7d 00h 00m',
-      //   deadlineTimestamp: Date.now() + 7 * 86400000,
-      //   difficulty,
-      //   isRemote: true,
-      //   network: 'Solana',
-      //   skills: skills.split(',').map((s) => s.trim()),
-      //   status: 'open',
-      //   escrowAddress: `Escrow${Math.random().toString(36).substring(2, 12)}`,
-      //   createdAt: new Date().toISOString(),
-      // };
+      const tx = await program.methods
+        .initializeTrial(
+          trialId,
+          title,
+          description,
+          category,
+          skills,
+          difficulty,
+          objective,
+          requirementsList.join(","),
+          toUsdc(candidateReward),
+          toUsdc(referralReward),
+        )
+        .accountsPartial({
+          employer: publicKey,
+          usdcMint: USDC_MINT,
+          employerTokenAccount: employerAta,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .rpc();
 
-      // onCreateTrial(newTrialData);
-    // }, 2400);
+      setTxStep("confirming");
+
+      const latest = await connection.getLatestBlockhash();
+      await connection.confirmTransaction(
+        { signature: tx, ...latest },
+        "confirmed"
+      );
+
+      const [trialPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("Trial"), publicKey.toBuffer(), Buffer.from(trialId)],
+        program.programId
+      );
+
+      const trial = await program.account.trialAccount.fetch(trialPda);
+
+      if (trial.trialId !== trialId) {
+        throw new Error("Trial account id mismatch");
+      }
+      if (trial.employer.toBase58() !== publicKey.toBase58()) {
+        throw new Error("Trial employer mismatch");
+      }
+
+      await fetchTrials();
+
+      const dod = definitionOfDoneList.join("\n");
+      const relayerUrl = import.meta.env.VITE_RELAYER_URL;
+      if (!relayerUrl) throw new Error("VITE_RELAYER_URL missing");
+
+      const glRes = await fetch(`${relayerUrl}/set-trial`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          trialId,
+          definitionOfDone: dod,
+        }),
+      });
+      const glJson = await glRes.json();
+      if (!glRes.ok || !glJson.ok) {
+        toast.error("Solana funded, GenLayer set_trial failed", {
+          description: String(glJson.error || glRes.status),
+        });
+      }
+      console.log("initialized", trialId, tx);
+      toast.success(`Published ${trialId}`);
+    } catch (err) {
+      console.error(err);
+      setTxStep("idle");
+    } finally {
+      setIsFunding(false);
+    }
   };
 
   const resetForm = () => {
@@ -217,13 +268,12 @@ export const CreateTrialModal: React.FC<CreateTrialModalProps> = ({
           ].map((item) => (
             <div
               key={item.step}
-              className={`flex items-center gap-1.5 transition-colors ${
-                currentStep === item.step
-                  ? 'text-[#3B82F6] font-semibold'
-                  : currentStep > item.step
-                    ? 'text-[#10B981]'
-                    : 'text-[#6B7280]'
-              }`}
+              className={`flex items-center gap-1.5 transition-colors ${currentStep === item.step
+                ? 'text-[#3B82F6] font-semibold'
+                : currentStep > item.step
+                  ? 'text-[#10B981]'
+                  : 'text-[#6B7280]'
+                }`}
             >
               <span>{item.label}</span>
               {currentStep > item.step && <CheckCircle2 className="w-3.5 h-3.5" />}

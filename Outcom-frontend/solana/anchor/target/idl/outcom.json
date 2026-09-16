@@ -1,5 +1,5 @@
 {
-  "address": "HiQwzXsHYbUPqmzXsNiTt9ZVGNAWW5HX879KTZwgBsRW",
+  "address": "DMbLxuGRQdtYwhsXTGdp1qAKbzzR7jiR3gvvttgU36Tj",
   "metadata": {
     "name": "outcom",
     "version": "0.1.0",
@@ -147,6 +147,34 @@
       "args": [
         {
           "name": "trial_id",
+          "type": "string"
+        },
+        {
+          "name": "title",
+          "type": "string"
+        },
+        {
+          "name": "description",
+          "type": "string"
+        },
+        {
+          "name": "category",
+          "type": "string"
+        },
+        {
+          "name": "skills",
+          "type": "string"
+        },
+        {
+          "name": "difficulty",
+          "type": "string"
+        },
+        {
+          "name": "objective",
+          "type": "string"
+        },
+        {
+          "name": "requirements",
           "type": "string"
         },
         {
@@ -461,6 +489,11 @@
       "code": 6011,
       "name": "InvalidReferrerAccount",
       "msg": "Referrer token account does not match payload recipient."
+    },
+    {
+      "code": 6012,
+      "name": "MetadataTooLong",
+      "msg": "A metadata field exceeds its maximum length."
     }
   ],
   "types": [
@@ -562,6 +595,34 @@
           },
           {
             "name": "trial_id",
+            "type": "string"
+          },
+          {
+            "name": "title",
+            "type": "string"
+          },
+          {
+            "name": "description",
+            "type": "string"
+          },
+          {
+            "name": "category",
+            "type": "string"
+          },
+          {
+            "name": "skills",
+            "type": "string"
+          },
+          {
+            "name": "difficulty",
+            "type": "string"
+          },
+          {
+            "name": "objective",
+            "type": "string"
+          },
+          {
+            "name": "requirements",
             "type": "string"
           },
           {

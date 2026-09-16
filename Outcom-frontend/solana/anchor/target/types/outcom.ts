@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/outcom.json`.
  */
 export type Outcom = {
-  "address": "HiQwzXsHYbUPqmzXsNiTt9ZVGNAWW5HX879KTZwgBsRW",
+  "address": "DMbLxuGRQdtYwhsXTGdp1qAKbzzR7jiR3gvvttgU36Tj",
   "metadata": {
     "name": "outcom",
     "version": "0.1.0",
@@ -153,6 +153,34 @@ export type Outcom = {
       "args": [
         {
           "name": "trialId",
+          "type": "string"
+        },
+        {
+          "name": "title",
+          "type": "string"
+        },
+        {
+          "name": "description",
+          "type": "string"
+        },
+        {
+          "name": "category",
+          "type": "string"
+        },
+        {
+          "name": "skills",
+          "type": "string"
+        },
+        {
+          "name": "difficulty",
+          "type": "string"
+        },
+        {
+          "name": "objective",
+          "type": "string"
+        },
+        {
+          "name": "requirements",
           "type": "string"
         },
         {
@@ -467,6 +495,11 @@ export type Outcom = {
       "code": 6011,
       "name": "invalidReferrerAccount",
       "msg": "Referrer token account does not match payload recipient."
+    },
+    {
+      "code": 6012,
+      "name": "metadataTooLong",
+      "msg": "A metadata field exceeds its maximum length."
     }
   ],
   "types": [
@@ -568,6 +601,34 @@ export type Outcom = {
           },
           {
             "name": "trialId",
+            "type": "string"
+          },
+          {
+            "name": "title",
+            "type": "string"
+          },
+          {
+            "name": "description",
+            "type": "string"
+          },
+          {
+            "name": "category",
+            "type": "string"
+          },
+          {
+            "name": "skills",
+            "type": "string"
+          },
+          {
+            "name": "difficulty",
+            "type": "string"
+          },
+          {
+            "name": "objective",
+            "type": "string"
+          },
+          {
+            "name": "requirements",
             "type": "string"
           },
           {

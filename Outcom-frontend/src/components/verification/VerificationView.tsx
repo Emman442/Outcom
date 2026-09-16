@@ -531,69 +531,7 @@ export const VerificationView: React.FC<VerificationViewProps> = ({
         </div>
       </div>
 
-      {/* LayerZero Cross-Chain Section (Subtle, Technical Diagram) */}
-      {verdict.layerZeroSettlement && (
-        <div className="p-5 bg-[#0D0F12] border border-[#24282D] rounded-xl space-y-4">
-          <div className="flex items-center justify-between border-b border-[#24282D] pb-3">
-            <div className="flex items-center gap-2">
-              <LayerZeroIcon className="w-4 h-4 text-white" />
-              <h4 className="text-xs font-semibold text-white tracking-tight uppercase font-mono">
-                Cross-chain settlement
-              </h4>
-            </div>
-            <span className="text-xs text-[#10B981] font-mono flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
-              Status: {verdict.layerZeroSettlement.status}
-            </span>
-          </div>
 
-          <p className="text-xs text-[#9CA3AF] leading-relaxed">
-            Outcom's core hiring logic and escrow execute on Solana, with LayerZero endpoint relays transmitting verified hiring state and cross-chain USDC delivery to recipient contracts.
-          </p>
-
-          {/* Cross-chain Flow Diagram */}
-          <div className="p-4 bg-[#121417] border border-[#24282D] rounded-lg flex flex-col md:flex-row items-center justify-between gap-4 text-xs">
-            {/* Origin: Solana */}
-            <div className="flex items-center gap-2.5 p-2.5 rounded bg-[#181B20] border border-[#24282D] w-full md:w-auto">
-              <SolanaIcon className="w-4 h-4" />
-              <div>
-                <span className="text-white font-medium block">Solana Program</span>
-                <span className="text-[10px] text-[#9CA3AF] font-mono">Origin Chain</span>
-              </div>
-            </div>
-
-            {/* Down/Right Arrow with LayerZero */}
-            <div className="flex items-center gap-1 text-[#3B82F6] font-mono text-xs">
-              <span>──────</span>
-              <span className="px-2 py-0.5 rounded bg-[#0052FF]/10 border border-[#0052FF]/30 text-white font-medium flex items-center gap-1">
-                <LayerZeroIcon className="w-3 h-3" /> LayerZero v2
-              </span>
-              <span>──────►</span>
-            </div>
-
-            {/* Destination: Base */}
-            <div className="flex items-center gap-2.5 p-2.5 rounded bg-[#181B20] border border-[#24282D] w-full md:w-auto">
-              <div className="w-4 h-4 rounded-full bg-[#0052FF] flex items-center justify-center text-[10px] font-bold text-white">
-                B
-              </div>
-              <div>
-                <span className="text-white font-medium block">{verdict.layerZeroSettlement.destinationChain}</span>
-                <span className="text-[10px] text-[#9CA3AF] font-mono">Recipient Contract</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Cross-chain message ID */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs text-[#9CA3AF] pt-1">
-            <span>
-              Message ID: <span className="font-mono text-white">{verdict.layerZeroSettlement.messageId}</span>
-            </span>
-            <span className="font-mono text-[#10B981] mt-1 sm:mt-0">
-              Payload confirmed at block #19,482,912
-            </span>
-          </div>
-        </div>
-      )}
 
       {/* Bottom CTA to Reputation Page */}
       <div className="flex items-center justify-between pt-4 border-t border-[#24282D]">
