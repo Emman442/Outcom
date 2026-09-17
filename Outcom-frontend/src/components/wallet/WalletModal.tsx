@@ -156,13 +156,13 @@ export const WalletModal: React.FC<WalletModalProps> = ({
               <div className="text-[11px] text-[#6B7280] mt-1 font-mono">SPL Token • 6 Decimals</div>
             </div>
           </div>
-
+s
           {/* Reputation Snippet */}
           <div className="p-3.5 bg-[#121417] border border-[#24282D] rounded-lg flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-[#0052FF]/10 border border-[#0052FF]/30 flex items-center justify-center text-[#3B82F6]">
+              {/* <div className="w-8 h-8 rounded-lg bg-[#0052FF]/10 border border-[#0052FF]/30 flex items-center justify-center text-[#3B82F6]">
                 <ShieldCheck className="w-4 h-4" />
-              </div>
+              </div> */}
               <div>
                 <div className="text-xs font-medium text-white">Protocol Reputation Score</div>
                 <div className="text-[11px] text-[#9CA3AF]">14 verified trial outcomes on-chain</div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outcom, UserWallet, SubmissionData } from '../../types';
 import { UsdcDisplay } from '../common/UsdcIcon';
 import { Button } from '../common/Button';
@@ -7,30 +7,33 @@ import {
   ChevronLeft,
   Github,
   Globe,
-  FileText,
   Link2,
   Plus,
   Trash2,
-  ShieldCheck,
   CheckCircle2,
   AlertCircle,
   Terminal,
   Cpu,
 } from 'lucide-react';
+import { toast } from 'sonner';
+import { PublicKey } from '@solana/web3.js';
+import { useProgram } from '@/src/hooks/solana/use-program';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { useParams } from 'react-router-dom';
+import { mapTrial } from '../trials/TrialDetailView';
+import { truncateAddress } from '@/src/utils/truncateAddress';
 
 interface SubmissionViewProps {
-  trial: Outcom;
-  wallet: UserWallet;
   onBack: () => void;
   onSubmit: (submission: SubmissionData) => void;
 }
 
 export const SubmissionView: React.FC<SubmissionViewProps> = ({
-  trial,
-  wallet,
   onBack,
   onSubmit,
 }) => {
+
+  const [trial, setTrial] = useState<Outcom | null>(null);
   const [repositoryUrl, setRepositoryUrl] = useState('https://github.com/alex-developer/solana-usdc-pay');
   const [deploymentUrl, setDeploymentUrl] = useState('https://solana-usdc-pay.vercel.app');
   const [documentationUrl, setDocumentationUrl] = useState('https://github.com/alex-developer/solana-usdc-pay#readme');
@@ -38,6 +41,47 @@ export const SubmissionView: React.FC<SubmissionViewProps> = ({
   const [notes, setNotes] = useState(
     'Implemented clean Anchor CPI calls, verified token decimals with SPL mint address, included devnet settlement tests and receipt download UI.'
   );
+  const [isLoading, setIsLoading] = useState(false)
+  const { program } = useProgram()
+  const { publicKey } = useWallet()
+  const RELAYER = import.meta.env.VITE_RELAYER_URL;
+  const { trialId } = useParams<{ trialId: string }>();
+
+
+  useEffect(() => {
+    if (!program || !trialId) return;
+
+    let cancelled = false;
+
+    async function load() {
+      setIsLoading(true);
+      try {
+        const rows = await program?.account.trialAccount.all();
+        const row = rows?.find((r: any) => r.account.trialId === trialId);
+        console.log(row)
+
+        if (cancelled) return;
+
+        if (!row) {
+          setTrial(null);
+          return;
+        }
+
+        setTrial(mapTrial(row.account, row.publicKey));
+      } catch (err) {
+        console.error('fetch trial failed', err);
+        if (!cancelled) setTrial(null);
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    }
+
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [program, trialId]);
+
 
   const [evidenceLinks, setEvidenceLinks] = useState<
     { title: string; url: string; type: 'github' | 'deployment' | 'tx' | 'video' | 'docs' }[]
@@ -46,11 +90,6 @@ export const SubmissionView: React.FC<SubmissionViewProps> = ({
       title: 'Devnet Settlement Transaction',
       url: 'https://explorer.solana.com/tx/5KpM9vW2Z7xQ4tR6uY8nC1bZ0eA3dE5gH7jK9mP8sQ?cluster=devnet',
       type: 'tx',
-    },
-    {
-      title: 'Loom Architecture & Demo Walkthrough',
-      url: 'https://loom.com/share/9a8b7c6d5e4f',
-      type: 'video',
     },
   ]);
 
@@ -75,27 +114,90 @@ export const SubmissionView: React.FC<SubmissionViewProps> = ({
     setEvidenceLinks(evidenceLinks.filter((_, i) => i !== index));
   };
 
-  const handleFormSubmit = (e: React.FormEvent) => {
+
+  console.log(trial)
+
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!repositoryUrl.trim() || !deploymentUrl.trim()) return;
+    if (!publicKey || !program) {
+      toast.error("Connect a Solana wallet");
+      return;
+    }
+    if (!agreedToVerification) return;
+
+
+    console.log(repositoryUrl, deploymentUrl)
 
     setIsSubmitting(true);
-    const submission: SubmissionData = {
-      trialId: trial.id,
-      repositoryUrl,
-      deploymentUrl,
-      documentationUrl,
-      evidenceLinks,
-      notes,
-      commitHash,
-      submittedAt: new Date().toISOString(),
-    };
+    try {
+      const employer = new PublicKey(trial.company);
+      const [trialPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("Trial"), employer.toBuffer(), Buffer.from(trial.id)],
+        program.programId
+      );
 
-    setTimeout(() => {
+      let referrer = "";
+      try {
+        const [referralPda] = PublicKey.findProgramAddressSync(
+          [
+            Buffer.from("Referral"),
+            trialPda.toBuffer(),
+            publicKey.toBuffer(),
+          ],
+          program?.programId
+        );
+        const rec = await program?.account.referral.fetch(referralPda);
+        referrer = rec.referrer.toBase58();
+      } catch {
+        referrer = "";
+      }
+
+      const extraUrl =
+        documentationUrl.trim() ||
+        evidenceLinks.find((l) => l.url.startsWith("http"))?.url ||
+        "";
+
+        console.log("Extra url", extraUrl)
+      const res = await fetch(`${RELAYER}/submit-and-verify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          trialId: trial?.id,
+          candidate: publicKey.toBase58(),
+          referrer,
+          githubRepoUrl: repositoryUrl.trim(),
+          deployedAppUrl: deploymentUrl.trim(),
+          extraUrl,
+        }),
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error || `submit failed (${res.status})`);
+      }
+
+      toast.success("Evidence sent to GenLayer");
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "submit_and_verify failed");
+    } finally {
       setIsSubmitting(false);
-      onSubmit(submission);
-    }, 1200);
+    }
   };
+
+
+  if (isLoading) {
+    return <div className="text-sm text-[#9CA3AF]">Loading trial…</div>;
+  }
+
+  if (!trial) {
+    return (
+      <div className="text-sm text-[#9CA3AF]">
+        Trial <span className="font-mono text-white">{trialId}</span> not found.
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-200">
@@ -140,7 +242,7 @@ export const SubmissionView: React.FC<SubmissionViewProps> = ({
             <span>ID: {trial.id}</span>
           </div>
           <h1 className="text-xl font-bold text-white tracking-tight mt-1">{trial.title}</h1>
-          <p className="text-xs text-[#9CA3AF] mt-0.5">Assigned to: {trial.company}</p>
+          <p className="text-xs text-[#9CA3AF] mt-0.5">Assigned to: {trial.selectedCandidate}</p>
         </div>
 
         <div className="text-right flex-shrink-0 bg-[#121417] p-3 rounded-lg border border-[#24282D]">
@@ -233,7 +335,7 @@ export const SubmissionView: React.FC<SubmissionViewProps> = ({
             </p>
           </div>
 
-          <div>
+          {/* <div>
             <label className="block text-xs font-semibold text-[#D1D5DB] mb-1.5">
               Documentation / README URL (Optional)
             </label>
@@ -244,7 +346,7 @@ export const SubmissionView: React.FC<SubmissionViewProps> = ({
               onChange={(e) => setDocumentationUrl(e.target.value)}
               className="w-full bg-[#121417] border border-[#24282D] focus:border-[#0052FF] focus:outline-none rounded-lg px-3.5 py-2 text-sm text-white font-mono placeholder:text-[#6B7280]"
             />
-          </div>
+          </div> */}
         </div>
 
         {/* Section 3: Evidence & Supporting Proof */}
@@ -254,7 +356,7 @@ export const SubmissionView: React.FC<SubmissionViewProps> = ({
               <Link2 className="w-4 h-4 text-[#10B981]" />
               <h3 className="text-sm font-semibold text-white">Supporting Evidence & Proof</h3>
             </div>
-            <span className="text-xs text-[#9CA3AF] font-mono">Transactions, Videos, Benchmarks</span>
+            <span className="text-xs text-[#9CA3AF] font-mono">Transaction, Benchmarks, e.t.c</span>
           </div>
 
           {/* Existing Links List */}
@@ -370,7 +472,7 @@ export const SubmissionView: React.FC<SubmissionViewProps> = ({
         <div className="flex items-center justify-between pt-2">
           <div className="flex items-center gap-2 text-xs text-[#9CA3AF]">
             <SolanaIcon className="w-3.5 h-3.5" />
-            <span>Signing with: <span className="font-mono text-white">{wallet.address.slice(0, 4)}...{wallet.address.slice(-4)}</span></span>
+            <span>Signing with: <span className="font-mono text-white">{truncateAddress(publicKey!?.toString())}</span></span>
           </div>
 
           <div className="flex items-center gap-3">
@@ -383,7 +485,6 @@ export const SubmissionView: React.FC<SubmissionViewProps> = ({
               size="md"
               isLoading={isSubmitting}
               disabled={!agreedToVerification}
-              icon={<ShieldCheck className="w-4 h-4" />}
             >
               Submit for Verification
             </Button>

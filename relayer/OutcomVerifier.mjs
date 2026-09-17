@@ -31,11 +31,11 @@ export class OutcomVerifier {
 
     this.client = createClient(config);
   }
-  async getTrialStatus() {
+  async getTrialStatus(trialId) {
     return this.client.readContract({
       address: this.contractAddress,
       functionName: "get_trial_status",
-      args: [],
+      args: [String(trialId || "")],
     });
   }
 
@@ -53,35 +53,60 @@ export class OutcomVerifier {
   }
 
   async write(functionName, args) {
-    const estimate = await this.estimateFees(functionName, args);
-    const fees =
-      estimate && (estimate.distribution || estimate.feeValue)
-        ? {
+    console.log("write", functionName, args);
+
+    let fees;
+    try {
+      const estimate = await this.client.estimateTransactionFeesForWrite({
+        address: this.contractAddress,
+        functionName,
+        args,
+      });
+      if (estimate?.feeValue && estimate.feeValue !== 0n && estimate.feeValue !== "0") {
+        fees = {
           distribution: estimate.distribution,
           feeValue: estimate.feeValue,
-        }
-        : undefined;
+        };
+      }
+    } catch (e) {
+      console.warn("estimate failed, using fallback fee", e.message || e);
+    }
+
+    if (!fees) {
+      fees = {
+        feeValue: BigInt(process.env.GL_FALLBACK_FEE || "613822800010352"),
+        distribution: {
+          leaderTimeunitsAllocation: 100,
+          validatorTimeunitsAllocation: 200,
+          appealRounds: 0,
+          rotations: [3],
+          executionBudgetPerRound: 153455700000000n,
+          totalMessageFees: 0n,
+          maxPriceGenPerTimeUnit: 2,
+          storageFeeMaxGasPrice: 300000000,
+          receiptFeeMaxGasPrice: 300000000,
+        },
+      };
+    }
 
     const txHash = await this.client.writeContract({
       address: this.contractAddress,
       functionName,
       args,
       value: 0n,
-      ...(fees ? { fees } : {}),
+      fees,
     });
 
-    if (typeof this.client.waitForTransactionReceipt === "function") {
-      return this.client.waitForTransactionReceipt({
-        hash: txHash,
-        waitUntil: "decided",
-        retries: 24,
-        interval: 5000,
-      });
-    }
-    return txHash;
+    return this.client.waitForTransactionReceipt({
+      hash: txHash,
+      waitUntil: "decided",
+      retries: 60,
+      interval: 5000,
+    });
   }
 
-  setTrial(trialId, definitionOfDone) {
+
+  setTrial(trialId, definitionOfDone, requirements) {
     const id = String(trialId ?? "").trim();
     const dod = String(definitionOfDone ?? "").trim();
 
@@ -90,16 +115,17 @@ export class OutcomVerifier {
     if (id.length > 32) throw new Error("trialId longer than 32");
     if (dod.length < 20) throw new Error("definitionOfDone too short");
 
-    return this.write("set_trial", [String(trialId), String(definitionOfDone)]);
+    return this.write("set_trial", [String(trialId), String(definitionOfDone), String(requirements)]);
   }
 
-  submitAndVerify(candidate, referrer, repo, deploy, extra) {
+  submitAndVerify(trialId, candidate, referrer, repo, deploy, extra) {
     return this.write("submit_and_verify", [
-      candidate || "",
-      referrer || "",
-      repo || "",
-      deploy || "",
-      extra || "",
+      String(trialId || ""),
+      String(candidate || ""),
+      String(referrer || ""),
+      String(repo || ""),
+      String(deploy || ""),
+      String(extra || ""),
     ]);
   }
 }

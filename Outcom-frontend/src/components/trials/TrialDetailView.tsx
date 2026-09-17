@@ -22,6 +22,7 @@ import { useProgram } from '@/src/hooks/solana/use-program';
 import { useParams } from 'react-router-dom';
 import { PublicKey } from '@solana/web3.js';
 import { useWallet } from '@solana/wallet-adapter-react';
+import { truncateAddress } from '@/src/utils/truncateAddress';
 
 interface TrialDetailViewProps {
   onBack: () => void;
@@ -41,7 +42,7 @@ const MOCK_REQUIREMENTS = [
   { id: 'req-3', text: 'Robust error handling and unit tests', mandatory: false },
 ];
 
-function mapTrial(account: any, pubkey: PublicKey): Outcom {
+export function mapTrial(account: any, pubkey: PublicKey): Outcom {
   const statusKey =
     account.status && typeof account.status === 'object'
       ? Object.keys(account.status)[0]
@@ -95,11 +96,19 @@ function mapTrial(account: any, pubkey: PublicKey): Outcom {
       id: `dod-${i}`,
       text,
     })),
-    requirements: MOCK_REQUIREMENTS,
+    requirements: String(account.requirements || "")
+      .split(",")
+      .map((text: string, i: number) => ({
+        id: `req-${i}`,
+        text: text.trim(),
+        mandatory: true,
+      }))
+      .filter((r) => r.text),
     escrowAddress: pubkey.toBase58(),
     createdAt: Date.now(),
     deadline: 'Open',
     applicantsCount: 0,
+    selectedCandidate: String(account.selectedCandidate ?? "")
   } as unknown as Outcom;
 }
 
@@ -155,12 +164,11 @@ export const TrialDetailView: React.FC<TrialDetailViewProps> = ({
   }, [program, trialId]);
 
 
-
-
   const handleRefer = (targetTrial: Outcom) => {
     if (onOpenReferral) onOpenReferral(targetTrial);
     else if (onOpenReferModal) onOpenReferModal(targetTrial);
   };
+
 
   const handleStart = async (targetTrial: Outcom) => {
     if (!program || !publicKey || !trialId) return;
@@ -237,17 +245,6 @@ export const TrialDetailView: React.FC<TrialDetailViewProps> = ({
           <ChevronLeft className="w-4 h-4" />
           <span>Back to Discover</span>
         </button>
-
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-[#6B7280] font-mono">ID: {trial.id}</span>
-          <button
-            onClick={() => handleRefer(trial)}
-            className="text-xs text-[#9CA3AF] hover:text-white px-2.5 py-1 rounded bg-[#121417] border border-[#24282D] hover:border-[#38404B] flex items-center gap-1.5 transition-colors cursor-pointer"
-          >
-            <Share2 className="w-3 h-3" />
-            <span>Share</span>
-          </button>
-        </div>
       </div>
 
       <div className="p-4 bg-[#0D0F12] border border-[#24282D] rounded-xl space-y-3">
@@ -258,14 +255,14 @@ export const TrialDetailView: React.FC<TrialDetailViewProps> = ({
             </span>
             <span
               className={`text-xs font-mono font-bold px-2 py-0.5 rounded border ${currentStage === 'OPEN'
-                  ? 'bg-[#3B82F6]/10 text-[#3B82F6] border-[#3B82F6]/30'
-                  : currentStage === 'IN PROGRESS'
-                    ? 'bg-[#F59E0B]/10 text-[#F59E0B] border-[#F59E0B]/30'
-                    : currentStage === 'READY TO SUBMIT'
-                      ? 'bg-[#10B981]/10 text-[#10B981] border-[#10B981]/30'
-                      : currentStage === 'UNDER REVIEW'
-                        ? 'bg-[#8B5CF6]/10 text-[#8B5CF6] border-[#8B5CF6]/30'
-                        : 'bg-[#10B981]/20 text-[#10B981] border-[#10B981]/40'
+                ? 'bg-[#3B82F6]/10 text-[#3B82F6] border-[#3B82F6]/30'
+                : currentStage === 'IN PROGRESS'
+                  ? 'bg-[#F59E0B]/10 text-[#F59E0B] border-[#F59E0B]/30'
+                  : currentStage === 'READY TO SUBMIT'
+                    ? 'bg-[#10B981]/10 text-[#10B981] border-[#10B981]/30'
+                    : currentStage === 'UNDER REVIEW'
+                      ? 'bg-[#8B5CF6]/10 text-[#8B5CF6] border-[#8B5CF6]/30'
+                      : 'bg-[#10B981]/20 text-[#10B981] border-[#10B981]/40'
                 }`}
             >
               {currentStage}
@@ -289,10 +286,10 @@ export const TrialDetailView: React.FC<TrialDetailViewProps> = ({
               <div
                 key={step.id}
                 className={`p-2 rounded-lg border flex flex-col justify-between transition-all ${isCurrent
-                    ? 'bg-[#181B20] border-[#0052FF] text-white shadow-sm'
-                    : isDone
-                      ? 'bg-[#0D0F12] border-[#10B981]/30 text-[#10B981]'
-                      : 'bg-[#0D0F12] border-[#24282D] text-[#6B7280]'
+                  ? 'bg-[#181B20] border-[#0052FF] text-white shadow-sm'
+                  : isDone
+                    ? 'bg-[#0D0F12] border-[#10B981]/30 text-[#10B981]'
+                    : 'bg-[#0D0F12] border-[#24282D] text-[#6B7280]'
                   }`}
               >
                 <div className="flex items-center justify-between">
@@ -318,12 +315,7 @@ export const TrialDetailView: React.FC<TrialDetailViewProps> = ({
               />
               <div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-sm font-semibold text-white">{trial.company}</span>
-                  {trial.isCompanyVerified && (
-                    <Badge variant="blue" size="xs">
-                      <CheckCircle className="w-3 h-3 text-[#3B82F6]" /> Verified Employer
-                    </Badge>
-                  )}
+                  <span className="text-sm font-semibold text-white">{truncateAddress(trial.company)}</span>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-[#9CA3AF] mt-0.5">
                   <span>{trial.category}</span>
@@ -357,8 +349,8 @@ export const TrialDetailView: React.FC<TrialDetailViewProps> = ({
             <button
               onClick={() => setActiveTab('overview')}
               className={`pb-3 text-sm font-medium transition-colors border-b-2 -mb-px cursor-pointer ${activeTab === 'overview'
-                  ? 'text-white border-[#0052FF]'
-                  : 'text-[#9CA3AF] border-transparent hover:text-white'
+                ? 'text-white border-[#0052FF]'
+                : 'text-[#9CA3AF] border-transparent hover:text-white'
                 }`}
             >
               Trial Specification
@@ -366,8 +358,8 @@ export const TrialDetailView: React.FC<TrialDetailViewProps> = ({
             <button
               onClick={() => setActiveTab('applicants')}
               className={`pb-3 text-sm font-medium transition-colors border-b-2 -mb-px flex items-center gap-1.5 cursor-pointer ${activeTab === 'applicants'
-                  ? 'text-white border-[#0052FF]'
-                  : 'text-[#9CA3AF] border-transparent hover:text-white'
+                ? 'text-white border-[#0052FF]'
+                : 'text-[#9CA3AF] border-transparent hover:text-white'
                 }`}
             >
               <span>Applicants & Candidates</span>
@@ -418,7 +410,6 @@ export const TrialDetailView: React.FC<TrialDetailViewProps> = ({
               <section className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-semibold text-[#D1D5DB] uppercase tracking-wider font-mono flex items-center gap-2">
-                    <Shield className="w-4 h-4 text-[#10B981]" />
                     Definition of Done
                   </h3>
                 </div>

@@ -8,6 +8,9 @@
     "watch": "node index.mjs watch"
   },
   "dependencies": {
+    "@coral-xyz/anchor": "^0.32.1",
+    "@solana/spl-token": "^0.4.15",
+    "@solana/web3.js": "^1.99.0",
     "dotenv": "^16.4.5",
     "genlayer-js": "^2.0.0-rc.1",
     "viem": "^2.21.0"

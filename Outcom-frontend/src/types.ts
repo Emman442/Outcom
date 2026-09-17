@@ -37,6 +37,7 @@ export interface Outcom {
   status: TrialStatus;
   escrowAddress: string;
   createdAt: string;
+  selectedCandidate: string;
   currentCandidateStatus?:
     | 'not_started'
     | 'open'

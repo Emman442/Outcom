@@ -71,6 +71,7 @@ class OutcomVerifier {
   async estimateSetTrialFees(
     trialId: string,
     definitionOfDone: string,
+    requirements: string,
     level: FeePresetLevel = "standard"
   ): Promise<FeePresetEstimate | undefined> {
     return estimateWriteFeePreset(
@@ -78,7 +79,7 @@ class OutcomVerifier {
       {
         address: this.contractAddress,
         functionName: "set_trial",
-        args: [trialId, definitionOfDone],
+        args: [trialId, definitionOfDone, requirements],
       },
       level
     );
@@ -87,13 +88,14 @@ class OutcomVerifier {
   async setTrial(
     trialId: string,
     definitionOfDone: string,
+    requirements: string,
     feePreset?: FeePresetEstimate
   ) {
     const fees = feePresetToTransactionFees(feePreset);
     const txHash = await this.client.writeContract({
       address: this.contractAddress,
       functionName: "set_trial",
-      args: [trialId, definitionOfDone],
+      args: [trialId, definitionOfDone, requirements],
       value: BigInt(0),
       ...(fees ? { fees } : {}),
     });
@@ -106,6 +108,7 @@ class OutcomVerifier {
   }
 
   async estimateSubmitFees(
+    trial_id: string,
     candidate: string,
     referrer: string,
     repo: string,
@@ -118,13 +121,14 @@ class OutcomVerifier {
       {
         address: this.contractAddress,
         functionName: "submit_and_verify",
-        args: [candidate, referrer, repo, deploy, extra],
+        args: [trial_id, candidate, referrer, repo, deploy, extra],
       },
       level
     );
   }
 
   async submitAndVerify(
+    trial_id: string,
     candidate: string,
     referrer: string,
     repo: string,
@@ -136,7 +140,7 @@ class OutcomVerifier {
     const txHash = await this.client.writeContract({
       address: this.contractAddress,
       functionName: "submit_and_verify",
-      args: [candidate, referrer, repo, deploy, extra],
+      args: [trial_id, candidate, referrer, repo, deploy, extra],
       value: BigInt(0),
       ...(fees ? { fees } : {}),
     });

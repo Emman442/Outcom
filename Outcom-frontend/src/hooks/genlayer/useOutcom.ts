@@ -37,14 +37,16 @@ export function useSetTrial() {
     mutationFn: async ({
       trialId,
       definitionOfDone,
+      requirements
     }: {
       trialId: string;
       definitionOfDone: string;
+      requirements: string;
     }) => {
       if (!contract) throw new Error("Outcom contract not configured");
       if (!address) throw new Error("Connect the GenLayer admin wallet");
-      const feePreset = await contract.estimateSetTrialFees(trialId, definitionOfDone);
-      return contract.setTrial(trialId, definitionOfDone, feePreset);
+      const feePreset = await contract.estimateSetTrialFees(trialId, definitionOfDone, requirements);
+      return contract.setTrial(trialId, definitionOfDone, requirements, feePreset);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["outcom"] });

@@ -100,7 +100,6 @@ useEffect(() => {
 }, [program]);
 
 
-console.log(trials)
 
 
   const [selectedCategory, setSelectedCategory] = useState<string>('All');

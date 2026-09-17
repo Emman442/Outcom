@@ -586,7 +586,7 @@ export const CreateTrialModal: React.FC<CreateTrialModalProps> = ({
                 <div className="p-3.5 bg-[#0D0F12] border border-[#24282D] rounded-lg flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
                     <SolanaIcon className="w-4 h-4" />
-                    <span className="text-[#9CA3AF]">Your Devnet USDC Balance:</span>
+                    <span className="text-[#9CA3AF]">Your USDC Balance:</span>
                   </div>
                   {isBalanceLoading ? (
                     <span className="text-[#9CA3AF] font-mono">Loading…</span>
@@ -673,7 +673,6 @@ export const CreateTrialModal: React.FC<CreateTrialModalProps> = ({
                   isLoading={isFunding}
                   disabled={!hasSufficientBalance || isBalanceLoading}
                   onClick={handleFundAndPublish}
-                  icon={<ShieldCheck className="w-4 h-4" />}
                 >
                   Fund & Publish Trial
                 </Button>
