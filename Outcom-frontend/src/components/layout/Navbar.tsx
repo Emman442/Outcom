@@ -43,8 +43,8 @@ export const Navbar: React.FC<NavbarProps> = ({
     if (p === '/discover') return 'discover';
     if (p === '/work-trials' || p === '/workspace') return 'workspace';
     if (p === '/employer' || p === '/employer-hub') return 'employer';
-    if (p === '/leaderboard') return 'leaderboard';
-    if (p === '/reputation') return 'reputation';
+    // if (p === '/leaderboard') return 'leaderboard';
+    // if (p === '/reputation') return 'reputation';
     if (p.startsWith('/trials')) return 'trials';
     if (p === '/') return 'landing';
     return currentTab || activeTab || 'discover';
@@ -107,7 +107,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               Work Trials
             </Link>
-            <Link
+            {/* <Link
               to="/employer"
               onClick={() => handleTabClick('employer')}
               className={`px-3 py-1.5 rounded-md transition-colors cursor-pointer ${current === 'employer'
@@ -116,8 +116,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                 }`}
             >
               Employer Hub
-            </Link>
-            <Link
+            </Link> */}
+            {/* <Link
               to="/leaderboard"
               onClick={() => handleTabClick('leaderboard')}
               className={`px-3 py-1.5 rounded-md transition-colors cursor-pointer ${current === 'leaderboard'
@@ -126,8 +126,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                 }`}
             >
               Leaderboard
-            </Link>
-            <Link
+            </Link> */}
+            {/* <Link
               to="/reputation"
               onClick={() => handleTabClick('reputation')}
               className={`px-3 py-1.5 rounded-md transition-colors cursor-pointer ${current === 'reputation'
@@ -136,7 +136,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 }`}
             >
               Reputation
-            </Link>
+            </Link> */}
           </nav>
         </div>
 

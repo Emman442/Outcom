@@ -87,14 +87,14 @@ export const TrialCard: React.FC<TrialCardProps> = ({ trial, onSelect, onRefer }
         {/* Status / Applicants / Action */}
         <div className="flex items-center gap-3">
           <div className="text-right hidden sm:block">
-            <div className="flex items-center justify-end gap-1 text-[11px] text-[#9CA3AF] font-mono">
+            {/* <div className="flex items-center justify-end gap-1 text-[11px] text-[#9CA3AF] font-mono">
               <Clock className="w-3 h-3" />
               <span>{trial.deadline}</span>
             </div>
             <div className="flex items-center justify-end gap-1 text-[11px] text-[#6B7280]">
               <Users className="w-3 h-3" />
               <span>{trial.applicantsCount || 0} applicants</span>
-            </div>
+            </div> */}
           </div>
 
           <DifficultyBadge difficulty={trial.difficulty} />

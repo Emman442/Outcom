@@ -144,6 +144,9 @@ export const VerificationView: React.FC<VerificationViewProps> = ({
     return <div className="text-sm text-[#9CA3AF]">Missing trial id.</div>;
   }
 
+  const passed = String(status?.verdict || "").toUpperCase() === "PASS";
+  const hasReferrer = Boolean(status?.referrer_solana);
+
   return (
     <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-200">
       <div className="flex items-center justify-between">
@@ -218,16 +221,54 @@ export const VerificationView: React.FC<VerificationViewProps> = ({
           ))}
         </div>
 
-        <div className="md:col-span-7 p-5 bg-[#0D0F12] border border-[#24282D] rounded-xl space-y-3">
+        <div className="md:col-span-7 p-5 bg-[#0D0F12] border border-[#24282D] rounded-xl space-y-4">
           <h3 className="text-xs font-semibold text-[#D1D5DB] uppercase font-mono flex items-center gap-2">
-            <Cpu className="w-3.5 h-3.5 text-[#0052FF]" /> Protocol status
+            <Cpu className="w-3.5 h-3.5 text-[#0052FF]" />
+            Definition of done
           </h3>
-          <div className="text-sm text-[#D1D5DB] space-y-2">
-            <p>GenLayer verdict: <span className="font-mono text-white">{verdict || "pending"}</span></p>
-            <p>Candidate: <span className="font-mono text-xs">{status?.candidate_solana || "—"}</span></p>
-            <p>Referrer: <span className="font-mono text-xs">{status?.referrer_solana || "none"}</span></p>
-            {settleError && <p className="text-[#EF4444] text-xs">{settleError}</p>}
-          </div>
+
+          {(() => {
+            const items = String(status?.definition_of_done || "")
+              .split(/\n|\. /)
+              .map((s) => s.replace(/\.$/, "").trim())
+              .filter((s) => s.length > 8);
+
+            const list = items.length
+              ? items
+              : ["Waiting for definition of done from GenLayer"];
+
+            return (
+              <ul className="space-y-2">
+                {list.map((text) => (
+                  <li
+                    key={text}
+                    className="flex items-start gap-2.5 text-sm text-[#D1D5DB]"
+                  >
+                    {phase === "checking" ? (
+                      <span className="mt-0.5 w-3.5 h-3.5 rounded-full border border-[#F59E0B] shrink-0" />
+                    ) : phase === "verified" ? (
+                      <CheckCircle className="w-4 h-4 text-[#10B981] shrink-0 mt-0.5" />
+                    ) : (
+                      <span className="mt-0.5 inline-flex w-4 h-4 items-center justify-center rounded-full bg-[#EF4444]/15 text-[#EF4444] text-[10px] font-bold shrink-0">
+                        ×
+                      </span>
+                    )}
+                    <span
+                      className={
+                        phase === "failed" ? "text-[#F3F4F6]" : "text-[#D1D5DB]"
+                      }
+                    >
+                      {text}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            );
+          })()}
+
+          {settleError && (
+            <p className="text-[#EF4444] text-xs">{settleError}</p>
+          )}
         </div>
       </div>
 
@@ -288,33 +329,55 @@ export const VerificationView: React.FC<VerificationViewProps> = ({
           </Button>
         )}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="p-4 rounded-xl bg-[#121417] border border-[#0052FF]/30">
-            <span className="text-xs text-[#9CA3AF]">Candidate reward</span>
-            <UsdcDisplay amount={trial?.candidateReward || 0} size="xl" />
-            <div className="text-[11px] text-[#6B7280] font-mono truncate">
+          <div className="p-4 rounded-xl bg-[#121417] border border-[#0052FF]/30 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-[#9CA3AF]">Candidate reward</span>
+              {settleTx ? (
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#0052FF]/20 text-[#3B82F6]">
+                  Disbursed
+                </span>
+              ) : null}
+            </div>
+            <UsdcDisplay
+              amount={passed ? trial?.candidateReward || 0 : 0}
+              size="sm"
+            />
+            <p className="text-[11px] text-[#6B7280] font-mono break-all leading-relaxed">
               {status?.candidate_solana || "—"}
-            </div>
+            </p>
           </div>
-          <div className="p-3.5 flex gap-2 rounded-xl bg-[#121417] border border-[#F59E0B]/30 text-xs">
-            <span className="text-xs text-[#9CA3AF]">Referral reward</span>
 
-
-            <div>
-              <UsdcDisplay amount={trial?.referralReward || 0} size="sm" />
-              <div className="text-[11px] text-[#6B7280] font-mono truncate">
-                {status?.referrer_solana || "none"}
-              </div>
+          <div className="p-4 rounded-xl bg-[#121417] border border-[#F59E0B]/30 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-[#9CA3AF]">Referral reward</span>
+              {status?.referrer_solana ? (
+                settleTx ? (
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#F59E0B]/20 text-[#F59E0B]">
+                    Disbursed
+                  </span>
+                ) : null
+              ) : (
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#181B20] text-[#6B7280]">
+                  No referrer
+                </span>
+              )}
             </div>
-
+            <UsdcDisplay
+              amount={passed && hasReferrer ? trial?.referralReward || 0 : 0}
+              size="sm"
+            />
+            <p className="text-[11px] text-[#6B7280] font-mono break-all leading-relaxed">
+              {status?.referrer_solana || "none"}
+            </p>
           </div>
         </div>
       </div>
 
-      <div className="flex items-end justify-between pt-4 border-t border-[#24282D]">
+      {/* <div className="flex items-end justify-between pt-4 border-t border-[#24282D]">
         <Button variant="primary" size="md" onClick={onGoToReputation} iconRight={<ArrowRight className="w-4 h-4" />}>
           Reputation
         </Button>
-      </div>
+      </div> */}
     </div>
   );
 };

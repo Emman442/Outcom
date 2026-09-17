@@ -285,10 +285,10 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({
                   </div>
                   <h3 className="text-base font-semibold text-white mt-1">{trial.title}</h3>
                   <div className="text-xs text-[#9CA3AF] font-mono mt-1 flex items-center gap-3">
-                    <span>Deadline: {trial.deadline}</span>
+                    {/* <span>Deadline: {trial.deadline}</span>
                     <span>•</span>
                     <span>Applicants: {trial.applicantsCount}</span>
-                    <span>•</span>
+                    <span>•</span> */}
                     <span className="text-[#10B981]">Escrow Locked</span>
                   </div>
                 </div>
