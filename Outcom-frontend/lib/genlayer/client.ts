@@ -5,7 +5,7 @@ import { studionet } from "genlayer-js/chains";
 import { createWalletClient, custom, type WalletClient } from "viem";
 
 // GenLayer Network Configuration (from environment variables with fallbacks)
-export const GENLAYER_CHAIN_ID = parseInt(import.meta.env.VITE_GENLAYER_CHAIN_ID || "61999");
+export const GENLAYER_CHAIN_ID = parseInt(import.meta.env.VITE_GENLAYER_CHAIN_ID || "61997");
 export const GENLAYER_CHAIN_ID_HEX = `0x${GENLAYER_CHAIN_ID.toString(16).toUpperCase()}`;
 
 export const GENLAYER_NETWORK = {

@@ -12,7 +12,7 @@ import {
   ShieldCheck,
   AlertCircle,
 } from 'lucide-react';
-import { useWallet } from '@solana/wallet-adapter-react';
+import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { getDevnetUsdcBalance } from '../../utils/getDevnetUsdcBalance';
 import { useProgram } from '@/src/hooks/solana/use-program';
 import { useSolanaConnection } from '@/src/hooks/solana/useConnection';
@@ -34,11 +34,14 @@ export const CreateTrialModal: React.FC<CreateTrialModalProps> = ({
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4>(1);
   const { publicKey, connected } = useWallet();
   const { program, provider } = useProgram();
-  const connection = useSolanaConnection()
+  const {connection} = useConnection()
+  // const solanaConnection = useSolanaConnection()
   const { nextId, fetchTrials } = useTrials();
   const [usdcBalance, setUsdcBalance] = useState<number>(0);
   const [isBalanceLoading, setIsBalanceLoading] = useState(false);
   const [balanceError, setBalanceError] = useState<string | null>(null);
+
+  console.log(usdcBalance)
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -104,6 +107,7 @@ export const CreateTrialModal: React.FC<CreateTrialModalProps> = ({
       setBalanceError(null);
       try {
         const { uiAmount } = await getDevnetUsdcBalance(publicKey.toBase58(), connection);
+        console.log("UI AMOUNT: ", uiAmount)
         if (!cancelled) setUsdcBalance(uiAmount);
       } catch (err) {
         console.error(err);
@@ -229,6 +233,7 @@ export const CreateTrialModal: React.FC<CreateTrialModalProps> = ({
         }),
       });
       const glJson = await glRes.json();
+      console.log(glJson)
       if (!glRes.ok || !glJson.ok) {
         toast.error("Solana funded, GenLayer set_trial failed", {
           description: String(glJson.error || glRes.status),

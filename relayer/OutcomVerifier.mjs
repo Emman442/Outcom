@@ -1,4 +1,5 @@
 import { createAccount, createClient } from "genlayer-js";
+import { studioDevnet } from "genlayer-js/chains";
 
 function as0x(value) {
   if (!value) return value;
@@ -12,7 +13,15 @@ export class OutcomVerifier {
 
     this.contractAddress = as0x(contractAddress);
 
+    const chain = {
+      ...studioDevnet,
+      id: 61997,
+      name: "GenLayer Studio Next",
+      rpcUrls: { default: { http: [studioUrl] } },
+    };
+
     const config = {
+      chain,
       endpoint: studioUrl,
     };
 
@@ -22,7 +31,6 @@ export class OutcomVerifier {
 
     this.client = createClient(config);
   }
-
   async getTrialStatus() {
     return this.client.readContract({
       address: this.contractAddress,
@@ -49,9 +57,9 @@ export class OutcomVerifier {
     const fees =
       estimate && (estimate.distribution || estimate.feeValue)
         ? {
-            distribution: estimate.distribution,
-            feeValue: estimate.feeValue,
-          }
+          distribution: estimate.distribution,
+          feeValue: estimate.feeValue,
+        }
         : undefined;
 
     const txHash = await this.client.writeContract({
@@ -65,7 +73,7 @@ export class OutcomVerifier {
     if (typeof this.client.waitForTransactionReceipt === "function") {
       return this.client.waitForTransactionReceipt({
         hash: txHash,
-        status: "ACCEPTED",
+        waitUntil: "decided",
         retries: 24,
         interval: 5000,
       });
@@ -74,12 +82,14 @@ export class OutcomVerifier {
   }
 
   setTrial(trialId, definitionOfDone) {
-    if (!trialId || String(trialId).length > 32) {
-      throw new Error("trialId must be 1-32 chars");
-    }
-    if (!definitionOfDone || String(definitionOfDone).length < 20) {
-      throw new Error("definitionOfDone too short");
-    }
+    const id = String(trialId ?? "").trim();
+    const dod = String(definitionOfDone ?? "").trim();
+
+
+    if (!id) throw new Error("trialId missing");
+    if (id.length > 32) throw new Error("trialId longer than 32");
+    if (dod.length < 20) throw new Error("definitionOfDone too short");
+
     return this.write("set_trial", [String(trialId), String(definitionOfDone)]);
   }
 

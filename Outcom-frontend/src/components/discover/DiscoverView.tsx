@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Outcom, Difficulty } from '../../types';
 import { TrialCard } from '../trials/TrialCard';
 import { UsdcDisplay, UsdcIcon } from '../common/UsdcIcon';
@@ -13,21 +13,96 @@ import {
   X,
   Plus,
 } from 'lucide-react';
+import { useProgram } from '@/src/hooks/solana/use-program';
 
 interface DiscoverViewProps {
-  trials: Outcom[];
   onSelectTrial: (trial: Outcom) => void;
   onOpenReferral: (trial: Outcom) => void;
   onCreateTrial: () => void;
 }
 
 export const DiscoverView: React.FC<DiscoverViewProps> = ({
-  trials = [],
   onSelectTrial,
   onOpenReferral,
   onCreateTrial,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const { program } = useProgram()
+  const [trials, setTrials] = useState<Outcom[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+useEffect(() => {
+  if (!program) return;
+
+  let cancelled = false;
+
+  async function fetchTrials() {
+    setIsLoading(true);
+    try {
+      const rows = await program?.account.trialAccount.all();
+      if (cancelled) return;
+
+      const mapped: Outcom[] = rows?.map((row: any) => {
+        const a = row.account;
+        const statusKey =
+          a.status && typeof a.status === "object"
+            ? Object.keys(a.status)[0]
+            : "open";
+
+        const statusMap: Record<string, Outcom["status"]> = {
+          open: "open",
+          inProgress: "in_progress",
+          readyToSubmit: "in_progress",
+          underReview: "in_progress",
+          verified: "verified",
+          paid: "verified",
+          rejected: "verified",
+        };
+
+        return {
+          id: a.trialId,
+          title: a.title || a.trialId,
+          description: a.description || "",
+          company: a.employer?.toBase58?.() ?? "",
+          companyLogo: "https://i.pinimg.com/736x/2f/02/5a/2f025aa02bd16703950afaf16960911d.jpg",
+          category: a.category || "Full-Stack",
+          difficulty: (a.difficulty || "Advanced") as Difficulty,
+          skills: String(a.skills || "")
+            .split(",")
+            .map((s: string) => s.trim())
+            .filter(Boolean),
+          candidateReward: Number(a.candidateReward?.toString?.() ?? 0) / 1_000_000,
+          referralReward: Number(a.referralReward?.toString?.() ?? 0) / 1_000_000,
+          status: statusMap[statusKey] ?? "open",
+          definitionOfDone: String(a.definitionOfDone || "")
+            .split("\n")
+            .filter(Boolean),
+          objective: a.objective || "",
+          totalReward: (Number(a.candidateReward?.toString?.() ?? 0) + Number(a.referralReward?.toString?.() ?? 0))/1_000_000
+        // The on-chain account only contains the trial fields. The remaining
+        // display fields are populated by the trial detail/card views.
+        } as unknown as Outcom;
+      });
+
+      setTrials(mapped);
+    } catch (err) {
+      console.error("fetch trials failed", err);
+      if (!cancelled) setTrials([]);
+    } finally {
+      if (!cancelled) setIsLoading(false);
+    }
+  }
+
+  void fetchTrials();
+  return () => {
+    cancelled = true;
+  };
+}, [program]);
+
+
+console.log(trials)
+
+
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('All');
   const [selectedStatus, setSelectedStatus] = useState<string>('All');
@@ -127,18 +202,16 @@ export const DiscoverView: React.FC<DiscoverViewProps> = ({
             <div className="flex items-center p-1 rounded-lg bg-[#121417] border border-[#24282D]">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`p-1.5 rounded transition-colors cursor-pointer ${
-                  viewMode === 'grid' ? 'bg-[#181B20] text-white' : 'text-[#9CA3AF] hover:text-white'
-                }`}
+                className={`p-1.5 rounded transition-colors cursor-pointer ${viewMode === 'grid' ? 'bg-[#181B20] text-white' : 'text-[#9CA3AF] hover:text-white'
+                  }`}
                 title="Grid view"
               >
                 <LayoutGrid className="w-4 h-4" />
               </button>
               <button
                 onClick={() => setViewMode('list')}
-                className={`p-1.5 rounded transition-colors cursor-pointer ${
-                  viewMode === 'list' ? 'bg-[#181B20] text-white' : 'text-[#9CA3AF] hover:text-white'
-                }`}
+                className={`p-1.5 rounded transition-colors cursor-pointer ${viewMode === 'list' ? 'bg-[#181B20] text-white' : 'text-[#9CA3AF] hover:text-white'
+                  }`}
                 title="List view"
               >
                 <List className="w-4 h-4" />
@@ -154,11 +227,10 @@ export const DiscoverView: React.FC<DiscoverViewProps> = ({
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
-              className={`px-2.5 py-1 rounded-md transition-colors whitespace-nowrap cursor-pointer ${
-                selectedCategory === cat
+              className={`px-2.5 py-1 rounded-md transition-colors whitespace-nowrap cursor-pointer ${selectedCategory === cat
                   ? 'bg-[#0052FF] text-white font-medium'
                   : 'bg-[#121417] text-[#9CA3AF] hover:text-white border border-[#24282D]'
-              }`}
+                }`}
             >
               {cat}
             </button>

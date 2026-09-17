@@ -24,6 +24,7 @@ export async function getDevnetUsdcBalance(
 
   try {
     const account = await getAccount(connection, ata);
+    console.log("account",account)
     const raw = account.amount; // bigint, smallest units
     return {
       raw,

@@ -302,6 +302,72 @@ export type Outcom = {
       ]
     },
     {
+      "name": "referCandidate",
+      "discriminator": [
+        116,
+        156,
+        144,
+        107,
+        233,
+        207,
+        156,
+        52
+      ],
+      "accounts": [
+        {
+          "name": "referrer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "trialAccount"
+        },
+        {
+          "name": "referral",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  82,
+                  101,
+                  102,
+                  101,
+                  114,
+                  114,
+                  97,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "trialAccount"
+              },
+              {
+                "kind": "arg",
+                "path": "candidate"
+              }
+            ]
+          }
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "candidate",
+          "type": "pubkey"
+        },
+        {
+          "name": "note",
+          "type": "string"
+        }
+      ]
+    },
+    {
       "name": "setPeer",
       "discriminator": [
         32,
@@ -422,6 +488,19 @@ export type Outcom = {
       ]
     },
     {
+      "name": "referral",
+      "discriminator": [
+        30,
+        235,
+        136,
+        224,
+        106,
+        107,
+        49,
+        64
+      ]
+    },
+    {
       "name": "trialAccount",
       "discriminator": [
         202,
@@ -500,6 +579,11 @@ export type Outcom = {
       "code": 6012,
       "name": "metadataTooLong",
       "msg": "A metadata field exceeds its maximum length."
+    },
+    {
+      "code": 6013,
+      "name": "cannotReferSelf",
+      "msg": "Referrer cannot refer themselves."
     }
   ],
   "types": [
@@ -586,6 +670,34 @@ export type Outcom = {
           {
             "name": "bump",
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "referral",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "trial",
+            "type": "pubkey"
+          },
+          {
+            "name": "trialId",
+            "type": "string"
+          },
+          {
+            "name": "referrer",
+            "type": "pubkey"
+          },
+          {
+            "name": "candidate",
+            "type": "pubkey"
+          },
+          {
+            "name": "note",
+            "type": "string"
           }
         ]
       }

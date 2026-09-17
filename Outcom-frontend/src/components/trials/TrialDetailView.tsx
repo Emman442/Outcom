@@ -1,29 +1,29 @@
-import React, { useState } from 'react';
-import { Outcom, UserWallet, CandidateApplicant } from '../../types';
+import React, { useEffect, useState } from 'react';
+import { Outcom, Difficulty, CandidateApplicant } from '../../types';
 import { UsdcDisplay } from '../common/UsdcIcon';
 import { Button } from '../common/Button';
 import { Badge, DifficultyBadge } from '../common/Badge';
-import { SolanaIcon, LayerZeroIcon } from '../common/NetworkIcons';
+import { SolanaIcon } from '../common/NetworkIcons';
 import {
   CheckCircle,
   Clock,
   Users,
   Shield,
-  ExternalLink,
   ChevronLeft,
   Share2,
   FileCode,
-  Globe,
   Terminal,
   Lock,
   Play,
   Check,
   ArrowRight,
 } from 'lucide-react';
+import { useProgram } from '@/src/hooks/solana/use-program';
+import { useParams } from 'react-router-dom';
+import { PublicKey } from '@solana/web3.js';
+import { useWallet } from '@solana/wallet-adapter-react';
 
 interface TrialDetailViewProps {
-  trial: Outcom;
-  wallet: UserWallet;
   onBack: () => void;
   onStartTrial?: (trial: Outcom) => void;
   onCommitTrial?: (trial: Outcom) => void;
@@ -35,9 +35,75 @@ interface TrialDetailViewProps {
   trialApplicants?: CandidateApplicant[];
 }
 
+const MOCK_REQUIREMENTS = [
+  { id: 'req-1', text: 'Anchor smart contract deployed on Solana Devnet', mandatory: true },
+  { id: 'req-2', text: 'USDC SPL token transfer verification', mandatory: true },
+  { id: 'req-3', text: 'Robust error handling and unit tests', mandatory: false },
+];
+
+function mapTrial(account: any, pubkey: PublicKey): Outcom {
+  const statusKey =
+    account.status && typeof account.status === 'object'
+      ? Object.keys(account.status)[0]
+      : 'open';
+
+  const statusMap: Record<string, Outcom['status']> = {
+    open: 'open',
+    inProgress: 'in_progress',
+    readyToSubmit: 'in_progress',
+    underReview: 'in_progress',
+    verified: 'verified',
+    paid: 'verified',
+    rejected: 'verified',
+  };
+
+  const candidateReward = Number(account.candidateReward?.toString?.() ?? 0) / 1_000_000;
+  const referralReward = Number(account.referralReward?.toString?.() ?? 0) / 1_000_000;
+
+  const dodLines = String(account.definitionOfDone || '')
+    .split('\n')
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  const fallbackDod = [
+    'Public GitHub repository with verified commit history',
+    'Application deployed to public URL',
+    'Verifiable transaction signatures on Solana block explorer',
+  ];
+
+  return {
+    id: account.trialId,
+    title: account.title || account.trialId,
+    description: account.description || '',
+    company: account.employer?.toBase58?.() ?? '',
+    companyLogo:
+      'https://i.pinimg.com/736x/2f/02/5a/2f025aa02bd16703950afaf16960911d.jpg',
+    isCompanyVerified: true,
+    category: account.category || 'Full-Stack',
+    difficulty: (account.difficulty || 'Advanced') as Difficulty,
+    skills: String(account.skills || '')
+      .split(',')
+      .map((s: string) => s.trim())
+      .filter(Boolean),
+    candidateReward,
+    referralReward,
+    totalReward: candidateReward + referralReward,
+    status: statusMap[statusKey] ?? 'open',
+    currentCandidateStatus: statusMap[statusKey] ?? 'open',
+    objective: account.objective || '',
+    definitionOfDone: (dodLines.length ? dodLines : fallbackDod).map((text, i) => ({
+      id: `dod-${i}`,
+      text,
+    })),
+    requirements: MOCK_REQUIREMENTS,
+    escrowAddress: pubkey.toBase58(),
+    createdAt: Date.now(),
+    deadline: 'Open',
+    applicantsCount: 0,
+  } as unknown as Outcom;
+}
+
 export const TrialDetailView: React.FC<TrialDetailViewProps> = ({
-  trial,
-  wallet,
   onBack,
   onStartTrial,
   onCommitTrial,
@@ -49,50 +115,120 @@ export const TrialDetailView: React.FC<TrialDetailViewProps> = ({
   trialApplicants = [],
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'applicants'>('overview');
+  const { program } = useProgram();
+  const { publicKey } = useWallet()
+  const { trialId } = useParams<{ trialId: string }>();
+  const [trial, setTrial] = useState<Outcom | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!program || !trialId) return;
+
+    let cancelled = false;
+
+    async function load() {
+      setIsLoading(true);
+      try {
+        const rows = await program?.account.trialAccount.all();
+        const row = rows?.find((r: any) => r.account.trialId === trialId);
+
+        if (cancelled) return;
+
+        if (!row) {
+          setTrial(null);
+          return;
+        }
+
+        setTrial(mapTrial(row.account, row.publicKey));
+      } catch (err) {
+        console.error('fetch trial failed', err);
+        if (!cancelled) setTrial(null);
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    }
+
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [program, trialId]);
+
+
+
 
   const handleRefer = (targetTrial: Outcom) => {
-    if (onOpenReferral) {
-      onOpenReferral(targetTrial);
-    } else if (onOpenReferModal) {
-      onOpenReferModal(targetTrial);
+    if (onOpenReferral) onOpenReferral(targetTrial);
+    else if (onOpenReferModal) onOpenReferModal(targetTrial);
+  };
+
+  const handleStart = async (targetTrial: Outcom) => {
+    if (!program || !publicKey || !trialId) return;
+
+    const [trialPda] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("Trial"),
+        new PublicKey(targetTrial.company).toBuffer(),
+        Buffer.from(trialId),
+      ],
+      program.programId
+    );
+
+    try {
+      const tx = await program.methods
+        .startTrial()
+        .accountsPartial({
+          candidate: publicKey,
+          trialAccount: trialPda,
+        })
+        .rpc();
+
+      console.log("startTrial", tx);
+      if (onCommitTrial) onCommitTrial(targetTrial);
+      else if (onStartTrial) onStartTrial(targetTrial);
+    } catch (err) {
+      console.error("startTrial failed", err);
     }
   };
 
-  const handleStart = (targetTrial: Outcom) => {
-    if (onCommitTrial) {
-      onCommitTrial(targetTrial);
-    } else if (onStartTrial) {
-      onStartTrial(targetTrial);
-    }
-  };
+  if (isLoading) {
+    return <div className="text-sm text-[#9CA3AF]">Loading trial…</div>;
+  }
 
-  // Clear State Machine logic requested:
-  // OPEN -> Start Trial -> IN PROGRESS -> Continue Trial / Ready to Submit -> Submit Evidence for Review -> UNDER REVIEW -> Verified/Rejected -> PAID
-  const rawStatus = trial.currentCandidateStatus || 'open';
-  const isPaid = rawStatus === 'paid' || rawStatus === 'verified' || trial.status === 'verified';
+  if (!trial) {
+    return (
+      <div className="text-sm text-[#9CA3AF]">
+        Trial <span className="font-mono text-white">{trialId}</span> not found.
+      </div>
+    );
+  }
+
+  const rawStatus = trial.currentCandidateStatus || trial.status || 'open';
+  const isPaid = rawStatus === 'paid' || rawStatus === 'verified';
   const isUnderReview = rawStatus === 'under_review' || rawStatus === 'submitted';
   const isReadyToSubmit = rawStatus === 'ready_to_submit';
   const isInProgress = rawStatus === 'in_progress' || rawStatus === 'active';
-  const isOpen = !isInProgress && !isReadyToSubmit && !isUnderReview && !isPaid;
 
   const currentStage: 'OPEN' | 'IN PROGRESS' | 'READY TO SUBMIT' | 'UNDER REVIEW' | 'PAID' =
     isPaid
       ? 'PAID'
       : isUnderReview
-      ? 'UNDER REVIEW'
-      : isReadyToSubmit
-      ? 'READY TO SUBMIT'
-      : isInProgress
-      ? 'IN PROGRESS'
-      : 'OPEN';
+        ? 'UNDER REVIEW'
+        : isReadyToSubmit
+          ? 'READY TO SUBMIT'
+          : isInProgress
+            ? 'IN PROGRESS'
+            : 'OPEN';
 
-  // Calculate percentages for the reward split visual bar
-  const candidatePercent = Math.round((trial.candidateReward / trial.totalReward) * 100);
+  const totalReward = trial.totalReward || 1;
+  const candidatePercent = Math.round((trial.candidateReward / totalReward) * 100);
   const referralPercent = 100 - candidatePercent;
+  const requirements = trial.requirements ?? MOCK_REQUIREMENTS;
+  const definitionOfDone = trial.definitionOfDone ?? [];
+  const skills = trial.skills ?? [];
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
-      {/* Top back navigation & Breadcrumb */}
       <div className="flex items-center justify-between">
         <button
           onClick={onBack}
@@ -114,7 +250,6 @@ export const TrialDetailView: React.FC<TrialDetailViewProps> = ({
         </div>
       </div>
 
-      {/* Protocol State Machine Visual Pipeline */}
       <div className="p-4 bg-[#0D0F12] border border-[#24282D] rounded-xl space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="flex items-center gap-2">
@@ -122,32 +257,22 @@ export const TrialDetailView: React.FC<TrialDetailViewProps> = ({
               Trial State Machine:
             </span>
             <span
-              className={`text-xs font-mono font-bold px-2 py-0.5 rounded border ${
-                currentStage === 'OPEN'
+              className={`text-xs font-mono font-bold px-2 py-0.5 rounded border ${currentStage === 'OPEN'
                   ? 'bg-[#3B82F6]/10 text-[#3B82F6] border-[#3B82F6]/30'
                   : currentStage === 'IN PROGRESS'
-                  ? 'bg-[#F59E0B]/10 text-[#F59E0B] border-[#F59E0B]/30'
-                  : currentStage === 'READY TO SUBMIT'
-                  ? 'bg-[#10B981]/10 text-[#10B981] border-[#10B981]/30'
-                  : currentStage === 'UNDER REVIEW'
-                  ? 'bg-[#8B5CF6]/10 text-[#8B5CF6] border-[#8B5CF6]/30'
-                  : 'bg-[#10B981]/20 text-[#10B981] border-[#10B981]/40'
-              }`}
+                    ? 'bg-[#F59E0B]/10 text-[#F59E0B] border-[#F59E0B]/30'
+                    : currentStage === 'READY TO SUBMIT'
+                      ? 'bg-[#10B981]/10 text-[#10B981] border-[#10B981]/30'
+                      : currentStage === 'UNDER REVIEW'
+                        ? 'bg-[#8B5CF6]/10 text-[#8B5CF6] border-[#8B5CF6]/30'
+                        : 'bg-[#10B981]/20 text-[#10B981] border-[#10B981]/40'
+                }`}
             >
               {currentStage}
             </span>
           </div>
-
-          <span className="text-[11px] text-[#9CA3AF] font-mono">
-            {currentStage === 'OPEN' && 'Candidate pool open • Click "Start Trial" to accept'}
-            {currentStage === 'IN PROGRESS' && 'Candidate in progress • Working on implementation'}
-            {currentStage === 'READY TO SUBMIT' && 'Work completed • Ready to submit evidence'}
-            {currentStage === 'UNDER REVIEW' && 'Evidence submitted • Autonomous verifier running'}
-            {currentStage === 'PAID' && 'Verdict passed • Escrow settled & reputation updated'}
-          </span>
         </div>
 
-        {/* 5-step visual state progress */}
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs font-mono">
           {[
             { id: 'OPEN', label: '1. OPEN', sub: 'Start Trial' },
@@ -156,21 +281,19 @@ export const TrialDetailView: React.FC<TrialDetailViewProps> = ({
             { id: 'UNDER REVIEW', label: '4. UNDER REVIEW', sub: 'Autonomous AI' },
             { id: 'PAID', label: '5. PAID', sub: 'USDC & Rep' },
           ].map((step, idx) => {
-            const isCurrent = currentStage === step.id;
             const stagesOrder = ['OPEN', 'IN PROGRESS', 'READY TO SUBMIT', 'UNDER REVIEW', 'PAID'];
-            const currentIdx = stagesOrder.indexOf(currentStage);
-            const isDone = currentIdx > idx;
+            const isCurrent = currentStage === step.id;
+            const isDone = stagesOrder.indexOf(currentStage) > idx;
 
             return (
               <div
                 key={step.id}
-                className={`p-2 rounded-lg border flex flex-col justify-between transition-all ${
-                  isCurrent
+                className={`p-2 rounded-lg border flex flex-col justify-between transition-all ${isCurrent
                     ? 'bg-[#181B20] border-[#0052FF] text-white shadow-sm'
                     : isDone
-                    ? 'bg-[#0D0F12] border-[#10B981]/30 text-[#10B981]'
-                    : 'bg-[#0D0F12] border-[#24282D] text-[#6B7280]'
-                }`}
+                      ? 'bg-[#0D0F12] border-[#10B981]/30 text-[#10B981]'
+                      : 'bg-[#0D0F12] border-[#24282D] text-[#6B7280]'
+                  }`}
               >
                 <div className="flex items-center justify-between">
                   <span className="font-semibold text-[11px] truncate">{step.label}</span>
@@ -183,11 +306,8 @@ export const TrialDetailView: React.FC<TrialDetailViewProps> = ({
         </div>
       </div>
 
-      {/* Two Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Left Column (Main Content) - Span 8 */}
         <div className="lg:col-span-8 space-y-8">
-          {/* Header Title & Company */}
           <div className="border-b border-[#24282D] pb-6">
             <div className="flex items-center gap-3 mb-3">
               <img
@@ -209,8 +329,6 @@ export const TrialDetailView: React.FC<TrialDetailViewProps> = ({
                   <span>{trial.category}</span>
                   <span>•</span>
                   <span>Remote</span>
-                  <span>•</span>
-                  <span className="font-mono text-[#6B7280]">Created {new Date(trial.createdAt).toLocaleDateString()}</span>
                 </div>
               </div>
             </div>
@@ -222,18 +340,9 @@ export const TrialDetailView: React.FC<TrialDetailViewProps> = ({
               {trial.description}
             </p>
 
-            {/* Skills & Network chips */}
             <div className="flex flex-wrap items-center gap-2 mt-4">
               <DifficultyBadge difficulty={trial.difficulty} />
-              <Badge variant="outline" size="xs">
-                <SolanaIcon className="w-3 h-3" /> {trial.network}
-              </Badge>
-              {trial.network.includes('LayerZero') && (
-                <Badge variant="outline" size="xs">
-                  <LayerZeroIcon className="w-3 h-3" /> LayerZero Cross-Chain
-                </Badge>
-              )}
-              {trial.skills.map((skill) => (
+              {skills.map((skill) => (
                 <span
                   key={skill}
                   className="text-xs font-mono px-2.5 py-0.5 rounded bg-[#121417] text-[#D1D5DB] border border-[#24282D]"
@@ -244,36 +353,32 @@ export const TrialDetailView: React.FC<TrialDetailViewProps> = ({
             </div>
           </div>
 
-          {/* Tab Selection: Overview vs Applicants */}
           <div className="flex items-center gap-2 border-b border-[#24282D]">
             <button
               onClick={() => setActiveTab('overview')}
-              className={`pb-3 text-sm font-medium transition-colors border-b-2 -mb-px cursor-pointer ${
-                activeTab === 'overview'
+              className={`pb-3 text-sm font-medium transition-colors border-b-2 -mb-px cursor-pointer ${activeTab === 'overview'
                   ? 'text-white border-[#0052FF]'
                   : 'text-[#9CA3AF] border-transparent hover:text-white'
-              }`}
+                }`}
             >
               Trial Specification
             </button>
             <button
               onClick={() => setActiveTab('applicants')}
-              className={`pb-3 text-sm font-medium transition-colors border-b-2 -mb-px flex items-center gap-1.5 cursor-pointer ${
-                activeTab === 'applicants'
+              className={`pb-3 text-sm font-medium transition-colors border-b-2 -mb-px flex items-center gap-1.5 cursor-pointer ${activeTab === 'applicants'
                   ? 'text-white border-[#0052FF]'
                   : 'text-[#9CA3AF] border-transparent hover:text-white'
-              }`}
+                }`}
             >
               <span>Applicants & Candidates</span>
               <span className="text-xs font-mono px-1.5 py-0.5 rounded-full bg-[#181B20] text-[#9CA3AF] border border-[#24282D]">
-                {trial.applicantsCount}
+                {trial.applicantsCount ?? 0}
               </span>
             </button>
           </div>
 
           {activeTab === 'overview' ? (
             <div className="space-y-8">
-              {/* The Objective */}
               <section className="space-y-3">
                 <h3 className="text-sm font-semibold text-[#D1D5DB] uppercase tracking-wider font-mono flex items-center gap-2">
                   <Terminal className="w-4 h-4 text-[#0052FF]" />
@@ -284,14 +389,13 @@ export const TrialDetailView: React.FC<TrialDetailViewProps> = ({
                 </div>
               </section>
 
-              {/* Requirements Checklist */}
               <section className="space-y-3">
                 <h3 className="text-sm font-semibold text-[#D1D5DB] uppercase tracking-wider font-mono flex items-center gap-2">
                   <FileCode className="w-4 h-4 text-[#0052FF]" />
                   Requirements
                 </h3>
                 <div className="bg-[#0D0F12] border border-[#24282D] rounded-xl divide-y divide-[#24282D]">
-                  {trial.requirements.map((req, idx) => (
+                  {requirements.map((req) => (
                     <div key={req.id} className="p-3.5 flex items-start gap-3">
                       <div className="w-5 h-5 rounded-full bg-[#0052FF]/10 border border-[#0052FF]/30 flex items-center justify-center text-[#3B82F6] flex-shrink-0 mt-0.5">
                         <CheckCircle className="w-3.5 h-3.5" />
@@ -311,21 +415,16 @@ export const TrialDetailView: React.FC<TrialDetailViewProps> = ({
                 </div>
               </section>
 
-              {/* Definition of Done (Critical Section) */}
               <section className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-semibold text-[#D1D5DB] uppercase tracking-wider font-mono flex items-center gap-2">
                     <Shield className="w-4 h-4 text-[#10B981]" />
                     Definition of Done
                   </h3>
-                  <span className="text-xs text-[#9CA3AF] font-mono">Protocol Verifier Criteria</span>
                 </div>
                 <div className="p-4 rounded-xl bg-[#0D0F12] border border-[#24282D] space-y-2.5">
-                  <p className="text-xs text-[#9CA3AF]">
-                    The smart contract verifier will evaluate candidate evidence strictly against these deterministic criteria:
-                  </p>
                   <ul className="space-y-2">
-                    {trial.definitionOfDone.map((dod, idx) => (
+                    {definitionOfDone.map((dod) => (
                       <li key={dod.id} className="flex items-start gap-2.5 text-sm text-[#D1D5DB]">
                         <span className="text-[#10B981] font-bold font-mono">✓</span>
                         <span>{dod.text}</span>
@@ -334,43 +433,14 @@ export const TrialDetailView: React.FC<TrialDetailViewProps> = ({
                   </ul>
                 </div>
               </section>
-
-              {/* Technical Specifications & Contract Details */}
-              <section className="space-y-3">
-                <h3 className="text-sm font-semibold text-[#D1D5DB] uppercase tracking-wider font-mono">
-                  On-Chain Escrow Architecture
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                  <div className="p-3 bg-[#0D0F12] border border-[#24282D] rounded-lg">
-                    <span className="text-[#6B7280] font-mono block mb-1">Escrow Program PDA</span>
-                    <span className="font-mono text-white break-all">{trial.escrowAddress}</span>
-                  </div>
-                  <div className="p-3 bg-[#0D0F12] border border-[#24282D] rounded-lg">
-                    <span className="text-[#6B7280] font-mono block mb-1">Settlement Asset</span>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <UsdcDisplay amount="USDC SPL" size="xs" showSymbol={false} />
-                      <span className="text-[#9CA3AF] font-mono">(EPjFW3...yGeL)</span>
-                    </div>
-                  </div>
-                </div>
-              </section>
             </div>
           ) : (
-            /* Applicants Tab */
             <div className="space-y-4">
-              <div className="p-3.5 bg-[#121417] border border-[#24282D] rounded-xl text-xs space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-white font-semibold flex items-center gap-2">
-                    <Users className="w-4 h-4 text-[#0052FF]" />
-                    Candidate Pipeline ({trial.applicantsCount} Registered)
-                  </span>
-                  <Badge variant="blue" size="xs">
-                    Applicant Pool
-                  </Badge>
-                </div>
-                <p className="text-[#9CA3AF] text-[11px] leading-relaxed">
-                  The {trial.applicantsCount} applicants are registered candidates in the discovery pool. Candidates only transition to <strong className="text-[#F59E0B]">IN PROGRESS</strong> once they click <strong className="text-white">Start Trial</strong> or are accepted by the employer.
-                </p>
+              <div className="p-3.5 bg-[#121417] border border-[#24282D] rounded-xl text-xs">
+                <span className="text-white font-semibold flex items-center gap-2">
+                  <Users className="w-4 h-4 text-[#0052FF]" />
+                  Candidate Pipeline ({trialApplicants.length} Registered)
+                </span>
               </div>
               <div className="space-y-3">
                 {trialApplicants.map((app) => (
@@ -392,34 +462,21 @@ export const TrialDetailView: React.FC<TrialDetailViewProps> = ({
                         </div>
                         <div className="flex items-center gap-3 text-xs text-[#9CA3AF] mt-1 font-mono">
                           <span>Wallet: {app.walletAddress}</span>
-                          <span>•</span>
-                          <span>Reputation: <strong className="text-white">{app.reputationScore}</strong></span>
                         </div>
                       </div>
                     </div>
-
-                    <div className="flex items-center gap-3">
-                      <div className="text-right hidden sm:block">
-                        <div className="text-xs text-[#9CA3AF]">
-                          {app.verifiedTrialsCount} Verified Trials
-                        </div>
-                        <div className="text-xs text-[#10B981] font-mono">
-                          {app.successRate}% Success Rate
-                        </div>
-                      </div>
-                      <Badge
-                        variant={
-                          app.status === 'Verified'
-                            ? 'green'
-                            : app.status === 'Submitted'
+                    <Badge
+                      variant={
+                        app.status === 'Verified'
+                          ? 'green'
+                          : app.status === 'Submitted'
                             ? 'blue'
                             : 'amber'
-                        }
-                        size="xs"
-                      >
-                        {app.status}
-                      </Badge>
-                    </div>
+                      }
+                      size="xs"
+                    >
+                      {app.status}
+                    </Badge>
                   </div>
                 ))}
               </div>
@@ -427,138 +484,76 @@ export const TrialDetailView: React.FC<TrialDetailViewProps> = ({
           )}
         </div>
 
-        {/* Right Column: Sticky Reward & Action Panel - Span 4 */}
         <div className="lg:col-span-4 lg:sticky lg:top-24 space-y-4">
           <div className="bg-[#0D0F12] border border-[#24282D] rounded-xl p-6 shadow-xl space-y-6">
-            {/* Total Reward Heading */}
             <div>
-              <div className="text-xs font-mono uppercase tracking-wider text-[#9CA3AF] mb-1.5 flex items-center justify-between">
-                <span>Reward</span>
-                <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-[#10B981]/10 text-[#10B981] border border-[#10B981]/20">
-                  Funded On-Chain
-                </span>
+              <div className="text-xs font-mono uppercase tracking-wider text-[#9CA3AF] mb-1.5">
+                Reward
               </div>
               <UsdcDisplay amount={trial.totalReward} size="xl" />
             </div>
 
-            {/* Reward Split Breakdown Card */}
             <div className="p-3.5 bg-[#121417] border border-[#24282D] rounded-lg space-y-3">
-              <div className="text-xs font-semibold text-[#D1D5DB] flex items-center justify-between">
-                <span>Reward Allocation</span>
-                <span className="text-[11px] text-[#6B7280] font-mono">Automated Split</span>
-              </div>
-
-              {/* Progress bar visual split */}
               <div className="w-full h-2 rounded-full bg-[#181B20] overflow-hidden flex">
-                <div
-                  style={{ width: `${candidatePercent}%` }}
-                  className="bg-[#0052FF] h-full"
-                  title={`Candidate: ${candidatePercent}%`}
-                />
-                <div
-                  style={{ width: `${referralPercent}%` }}
-                  className="bg-[#F59E0B] h-full"
-                  title={`Referrer: ${referralPercent}%`}
-                />
+                <div style={{ width: `${candidatePercent}%` }} className="bg-[#0052FF] h-full" />
+                <div style={{ width: `${referralPercent}%` }} className="bg-[#F59E0B] h-full" />
               </div>
-
-              {/* Candidate reward row */}
-              <div className="flex items-center justify-between text-xs pt-1">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-[#0052FF]" />
-                  <span className="text-white font-medium">Candidate Reward</span>
-                </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-white font-medium">Candidate Reward</span>
                 <UsdcDisplay amount={trial.candidateReward} size="sm" />
               </div>
-
-              {/* Referral reward row */}
               <div className="flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-[#F59E0B]" />
-                  <span className="text-white font-medium">Referral Reward</span>
-                </div>
+                <span className="text-white font-medium">Referral Reward</span>
                 <UsdcDisplay amount={trial.referralReward} size="sm" />
               </div>
             </div>
 
-            {/* Trial Metadata List */}
             <div className="space-y-3 text-xs border-y border-[#24282D] py-4">
               <div className="flex items-center justify-between">
                 <span className="text-[#9CA3AF] flex items-center gap-1.5">
-                  <Clock className="w-3.5 h-3.5 text-[#9CA3AF]" />
+                  <Clock className="w-3.5 h-3.5" />
                   Deadline
                 </span>
                 <span className="font-mono text-white font-semibold">{trial.deadline}</span>
               </div>
-
               <div className="flex items-center justify-between">
                 <span className="text-[#9CA3AF] flex items-center gap-1.5">
-                  <Users className="w-3.5 h-3.5 text-[#9CA3AF]" />
+                  <Users className="w-3.5 h-3.5" />
                   Candidates Applied
                 </span>
-                <span className="font-mono text-white font-semibold">{trial.applicantsCount} in pool</span>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-[#9CA3AF]">Current State</span>
-                <span
-                  className={`font-mono text-xs font-bold px-2 py-0.5 rounded border ${
-                    currentStage === 'OPEN'
-                      ? 'text-[#3B82F6] bg-[#3B82F6]/10 border-[#3B82F6]/20'
-                      : currentStage === 'IN PROGRESS'
-                      ? 'text-[#F59E0B] bg-[#F59E0B]/10 border-[#F59E0B]/20'
-                      : currentStage === 'READY TO SUBMIT'
-                      ? 'text-[#10B981] bg-[#10B981]/10 border-[#10B981]/20'
-                      : currentStage === 'UNDER REVIEW'
-                      ? 'text-[#8B5CF6] bg-[#8B5CF6]/10 border-[#8B5CF6]/20'
-                      : 'text-[#10B981] bg-[#10B981]/20 border-[#10B981]/30'
-                  }`}
-                >
-                  {currentStage}
+                <span className="font-mono text-white font-semibold">
+                  {trialApplicants.length} in pool
                 </span>
               </div>
-
               <div className="flex items-center justify-between">
                 <span className="text-[#9CA3AF]">Difficulty</span>
                 <DifficultyBadge difficulty={trial.difficulty} />
               </div>
             </div>
 
-            {/* Action Buttons */}
             <div className="space-y-2.5">
               {isPaid ? (
-                <div className="space-y-2">
-                  <Button
-                    variant="success"
-                    size="md"
-                    className="w-full"
-                    onClick={() => onViewVerification(trial)}
-                    icon={<CheckCircle className="w-4 h-4" />}
-                  >
-                    View Verification Verdict (Settled)
-                  </Button>
-                  <p className="text-[11px] text-[#10B981] text-center font-mono">
-                    Verdict: VERIFIED • 450 USDC Released • +85 Rep
-                  </p>
-                </div>
+                <Button
+                  variant="success"
+                  size="md"
+                  className="w-full"
+                  onClick={() => onViewVerification(trial)}
+                  icon={<CheckCircle className="w-4 h-4" />}
+                >
+                  View Verification Verdict (Settled)
+                </Button>
               ) : isUnderReview ? (
-                <div className="space-y-2">
-                  <Button
-                    variant="primary"
-                    size="md"
-                    className="w-full"
-                    onClick={() => onViewVerification(trial)}
-                    icon={<Clock className="w-4 h-4" />}
-                  >
-                    Track Verification Status
-                  </Button>
-                  <p className="text-[11px] text-[#9CA3AF] text-center font-mono">
-                    State: UNDER REVIEW • Autonomous checks running
-                  </p>
-                </div>
+                <Button
+                  variant="primary"
+                  size="md"
+                  className="w-full"
+                  onClick={() => onViewVerification(trial)}
+                  icon={<Clock className="w-4 h-4" />}
+                >
+                  Track Verification Status
+                </Button>
               ) : isInProgress ? (
-                <div className="space-y-2">
-                  {/* Once candidate has completed work: Submit Evidence for Review */}
+                <>
                   <Button
                     variant="primary"
                     size="md"
@@ -568,61 +563,39 @@ export const TrialDetailView: React.FC<TrialDetailViewProps> = ({
                   >
                     Submit Evidence for Review
                   </Button>
-
-                  {/* Continue Trial button for candidate actively in progress */}
                   <Button
                     variant="outline"
                     size="md"
                     className="w-full"
                     onClick={() => {
-                      if (onContinueTrial) {
-                        onContinueTrial(trial);
-                      } else {
-                        handleStart(trial);
-                      }
+                      if (onContinueTrial) onContinueTrial(trial);
+                      else handleStart(trial);
                     }}
                     icon={<Terminal className="w-4 h-4 text-[#0052FF]" />}
                   >
                     Continue Trial
                   </Button>
-
-                  <div className="p-2.5 bg-[#121417] border border-[#24282D] rounded-lg text-[11px] text-[#9CA3AF] leading-relaxed">
-                    <span className="text-[#F59E0B] font-semibold font-mono block mb-0.5">● STATE: IN PROGRESS</span>
-                    Candidate is actively working on trial. Click <strong className="text-white">Continue Trial</strong> to access workspace, or click <strong className="text-white">Submit Evidence for Review</strong> once code is ready.
-                  </div>
-                </div>
+                </>
               ) : isReadyToSubmit ? (
-                <div className="space-y-2">
-                  <Button
-                    variant="primary"
-                    size="md"
-                    className="w-full"
-                    onClick={() => onSubmitEvidence(trial)}
-                    icon={<ArrowRight className="w-4 h-4" />}
-                  >
-                    Submit Evidence for Review
-                  </Button>
-                  <p className="text-[11px] text-[#9CA3AF] text-center">
-                    Work completed. Click to submit repository and deployment evidence.
-                  </p>
-                </div>
+                <Button
+                  variant="primary"
+                  size="md"
+                  className="w-full"
+                  onClick={() => onSubmitEvidence(trial)}
+                  icon={<ArrowRight className="w-4 h-4" />}
+                >
+                  Submit Evidence for Review
+                </Button>
               ) : (
-                /* OPEN: Candidate has not started yet */
-                <div className="space-y-2">
-                  <Button
-                    variant="primary"
-                    size="md"
-                    className="w-full"
-                    onClick={() => handleStart(trial)}
-                    icon={<Play className="w-4 h-4 fill-white" />}
-                  >
-                    Start Trial
-                  </Button>
-                  <div className="p-2.5 bg-[#121417] border border-[#24282D] rounded-lg text-[11px] text-[#9CA3AF] leading-relaxed">
-                    <span className="text-[#3B82F6] font-semibold font-mono block mb-0.5">● STATE: OPEN</span>
-                    Candidate has not started yet. Click <strong className="text-white">Start Trial</strong> to accept requirements and enter <strong className="text-white">IN PROGRESS</strong>.
-                  </div>
-                </div>
+                <Button
+                  variant="primary"
+                  size="md"
+                  className="w-full"
+                  onClick={() => handleStart(trial)}
+                  icon={<Play className="w-4 h-4 fill-white" />}
+                >
+                  Start Trial
+                </Button>
               )}
 
               <Button
@@ -636,31 +609,11 @@ export const TrialDetailView: React.FC<TrialDetailViewProps> = ({
               </Button>
             </div>
 
-            {/* Small On-Chain Escrow Security Note */}
             <div className="pt-1 flex items-center justify-center gap-1.5 text-xs text-[#9CA3AF]">
               <Lock className="w-3 h-3 text-[#10B981]" />
               <span>Reward funded on-chain</span>
               <SolanaIcon className="w-3 h-3" />
             </div>
-          </div>
-
-          {/* Quick Guidance Card */}
-          <div className="bg-[#0D0F12] border border-[#24282D] rounded-xl p-4 text-xs text-[#9CA3AF] space-y-2">
-            <span className="font-semibold text-white block font-mono text-[11px] uppercase tracking-wider">
-              Outcom Protocol Pipeline:
-            </span>
-            <p>
-              1. <strong className="text-white">Start Trial:</strong> Accept requirements to enter <strong className="text-[#F59E0B]">IN PROGRESS</strong>.
-            </p>
-            <p>
-              2. <strong className="text-white">Submit Evidence for Review:</strong> Package GitHub repo, live deployment & tx link.
-            </p>
-            <p>
-              3. <strong className="text-white">Submit for Verification:</strong> Autonomous oracles & AI evaluate outcomes against the Definition of Done.
-            </p>
-            <p>
-              4. <strong className="text-white">Settlement & Reputation:</strong> Verdict passes → USDC escrow releases automatically & reputation updates on-chain.
-            </p>
           </div>
         </div>
       </div>

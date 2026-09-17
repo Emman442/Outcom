@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "dotenv": "^16.4.5",
-    "genlayer-js": "2.0.0-rc.1",
+    "genlayer-js": "^2.0.0-rc.1",
     "viem": "^2.21.0"
   },
   "keywords": [],

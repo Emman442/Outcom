@@ -4,6 +4,7 @@ import { UsdcDisplay } from '../common/UsdcIcon';
 import { DifficultyBadge } from '../common/Badge';
 import { SolanaIcon, LayerZeroIcon } from '../common/NetworkIcons';
 import { CheckCircle, Clock, Users, ArrowUpRight } from 'lucide-react';
+import { truncateAddress } from '@/src/utils/truncateAddress';
 
 interface TrialCardProps {
   trial: Outcom;
@@ -12,6 +13,7 @@ interface TrialCardProps {
 }
 
 export const TrialCard: React.FC<TrialCardProps> = ({ trial, onSelect, onRefer }) => {
+  console.log(trial)
   return (
     <div
       onClick={() => onSelect(trial)}
@@ -30,7 +32,7 @@ export const TrialCard: React.FC<TrialCardProps> = ({ trial, onSelect, onRefer }
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
                 <span className="text-xs font-semibold text-[#D1D5DB] truncate">
-                  {trial.company}
+                  {truncateAddress(trial.company)}
                 </span>
                 {trial.isCompanyVerified && (
                   <CheckCircle className="w-3.5 h-3.5 text-[#0052FF] flex-shrink-0" />
@@ -42,22 +44,6 @@ export const TrialCard: React.FC<TrialCardProps> = ({ trial, onSelect, onRefer }
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 flex-shrink-0">
-            {trial.network.includes('LayerZero') && (
-              <span
-                className="p-1 rounded bg-[#181B20] border border-[#24282D] text-[#9CA3AF]"
-                title="Cross-chain enabled via LayerZero"
-              >
-                <LayerZeroIcon className="w-3.5 h-3.5" />
-              </span>
-            )}
-            <span
-              className="p-1 rounded bg-[#181B20] border border-[#24282D] text-[#9CA3AF]"
-              title="Built on Solana"
-            >
-              <SolanaIcon className="w-3.5 h-3.5" />
-            </span>
-          </div>
         </div>
 
         {/* Title */}
@@ -107,7 +93,7 @@ export const TrialCard: React.FC<TrialCardProps> = ({ trial, onSelect, onRefer }
             </div>
             <div className="flex items-center justify-end gap-1 text-[11px] text-[#6B7280]">
               <Users className="w-3 h-3" />
-              <span>{trial.applicantsCount} applicants</span>
+              <span>{trial.applicantsCount || 0} applicants</span>
             </div>
           </div>
 
