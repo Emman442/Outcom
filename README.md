@@ -8,7 +8,7 @@ Companies create and fund Work Trials with **USDC**. Candidates complete the def
 
 **GenLayer** evaluates the submitted evidence against the Work Trial's requirements and Definition of Done. Once the outcome is verified, the system can settle the configured reward for the candidate and referrer.
 
-WorkTrial is built around **Solana**, with **LayerZero** used for cross-chain communication.
+Outcom is built around **Solana**, with **LayerZero** used for cross-chain communication.
 
 ---
 
@@ -19,7 +19,7 @@ Employer
    │
    │ Creates + funds Work Trial
    ▼
-WorkTrial
+Outcom
    │
    │ Candidate selected
    ▼
@@ -435,7 +435,7 @@ USDC Reward
 
 ---
 
-# Why WorkTrial?
+# Why Outcom?
 
 Traditional hiring often asks candidates to prove their ability through:
 
@@ -445,7 +445,7 @@ Traditional hiring often asks candidates to prove their ability through:
 * references
 * portfolios
 
-WorkTrial introduces another primitive:
+Outcom introduces another primitive:
 
 > **Prove that you can actually do the work.**
 
