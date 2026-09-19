@@ -1,145 +1,574 @@
-# Sample GenLayer project
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/license/mit/)
-[![Discord](https://img.shields.io/badge/Discord-Join%20us-5865F2?logo=discord&logoColor=white)](https://discord.gg/8Jm4v89VAu)
-[![Telegram](https://img.shields.io/badge/Telegram--T.svg?style=social&logo=telegram)](https://t.me/genlayer)
-[![Twitter](https://img.shields.io/twitter/url/https/twitter.com/yeagerai.svg?style=social&label=Follow%20%40GenLayer)](https://x.com/GenLayer)
-[![GitHub star chart](https://img.shields.io/github/stars/yeagerai/genlayer-project-boilerplate?style=social)](https://star-history.com/#yeagerai/genlayer-js)
-
-## About
-This project includes the boilerplate code for a GenLayer use case implementation, specifically a football bets game.
-
-## What's included
-- An example intelligent contract (Football Bets) with web access and LLM integration
-- **Direct mode tests** — fast, in-memory unit tests with web/LLM mocking (~ms per test)
-- **Integration tests** — full end-to-end tests against GenLayer Studio
-- **Contract linting** — static analysis to catch common contract issues before deployment
-- **CI pipeline** — GitHub Actions workflow for linting and direct tests
-- A production-ready Next.js 15 frontend with TypeScript, TanStack Query, and Radix UI
-- Configuration file template and deployment scripts
-
-## Requirements
-- Python >= 3.12
-- [GenLayer CLI](https://github.com/genlayerlabs/genlayer-cli) globally installed: `npm install -g genlayer`
-- GenLayer Studio (for integration tests and deployment): Install from [Docs](https://docs.genlayer.com/developers/intelligent-contracts/tooling-setup#using-the-genlayer-studio) or use the hosted [GenLayer Studio](https://studio.genlayer.com/)
-
-## Project Structure
-
-```
-contracts/              # Python intelligent contracts
-tests/
-  direct/               # Fast in-memory tests (no Studio required)
-    test_create_bet.py   # Bet creation logic
-    test_resolve_bet.py  # Bet resolution with web/LLM mocks
-    test_views.py        # Read-only view methods
-  integration/           # Full tests against GenLayer Studio
-    test_football_bets.py
-    fixtures.py          # Expected state fixtures
-frontend/               # Next.js 15 app (TypeScript, TanStack Query, Radix UI)
-deploy/                 # TypeScript deployment scripts
-gltest.config.yaml      # Test runner network configuration
-pyproject.toml          # Python/pytest configuration
-.github/workflows/      # CI pipeline
-```
-
-## Quick Start
-
-### 1. Set up Python environment
-
-```shell
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
-
-### 2. Lint your contracts
-
-Run the GenVM linter to catch issues before deployment:
-
-```shell
-genvm-lint check contracts/football_bets.py
-```
-
-The linter catches:
-- Forbidden imports and non-deterministic calls
-- Invalid storage types (must use `TreeMap`, `DynArray`, `u256`, etc.)
-- Missing decorators and return type annotations
-- Non-deterministic operations outside equivalence principle blocks
-- And [20+ other rules](https://github.com/genlayerlabs/genvm-linter)
-
-### 3. Run direct mode tests
-
-Direct mode tests run contracts in-memory without needing GenLayer Studio. They use mocks for web requests and LLM calls, giving you fast feedback (~milliseconds per test):
-
-```shell
-pytest tests/direct/ -v
-```
-
-Direct mode features used in these tests:
-- `direct_deploy("contracts/file.py")` — deploy contract in memory
-- `direct_vm.sender = address` — set transaction sender
-- `direct_vm.mock_web(pattern, response)` — mock HTTP/render calls
-- `direct_vm.mock_llm(pattern, response)` — mock LLM responses
-- `direct_vm.expect_revert("message")` — assert expected failures
-- `direct_vm.clear_mocks()` — reset mocks between calls
-
-### 4. Deploy the contract
-
-1. Choose your network: `genlayer network`
-2. Deploy: `genlayer deploy` (runs the script in `/deploy/deployScript.ts`)
-
-### 5. Run integration tests
-
-Integration tests deploy the contract to GenLayer Studio and test with real consensus:
-
-```shell
-gltest tests/integration/ -v -s
-```
-
-These require GenLayer Studio running (local or hosted).
-
-### 6. Set up the frontend
-
-1. Copy `frontend/.env.example` to `frontend/.env`
-2. Add your deployed contract address as `NEXT_PUBLIC_CONTRACT_ADDRESS`
-3. Run:
-
-```shell
-cd frontend
-npm install
-npm run dev
-```
-
-The app will be available at http://localhost:3000/.
-
-## How the Football Bets Contract Works
-
-1. **Creating Bets**: Users bet on a football match by providing the game date, teams, and predicted winner.
-2. **Resolving Bets**: After the match, the contract fetches results from BBC Sport, uses an LLM to extract the score, and validates via the equivalence principle.
-3. **Points**: Correct predictions earn points. Users can query their points or the leaderboard.
-
-## Testing Strategy
-
-| Test Type | Command | Speed | Requires Studio |
-|-----------|---------|-------|-----------------|
-| **Lint** | `genvm-lint check contracts/*.py` | ~250ms | No |
-| **Direct** | `pytest tests/direct/ -v` | ~ms/test | No |
-| **Integration** | `gltest tests/integration/ -v -s` | ~min/test | Yes |
-
-**Recommended workflow:**
-1. Lint after every contract change
-2. Run direct tests frequently during development
-3. Run integration tests before deployment to verify consensus behavior
-
-For AI coding agents (Claude Code, Cursor, etc.), the linter and direct tests provide the fast feedback loop needed for iterative development without requiring a running Studio instance.
-
-## Community
-- **[Discord](https://discord.gg/8Jm4v89VAu)**: Discussions, support, and announcements
-- **[Telegram](https://t.me/genlayer)**: Informal chats and quick updates
-
-## Documentation
-For detailed information, see our [documentation](https://docs.genlayer.com/).
-
-## License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 # Outcom
-# Outcom
+
+**Prove the work. Earn the reward.**
+
+Outcom is an outcome-based hiring protocol that lets companies evaluate talent through real work instead of relying solely on resumes, interviews, and referrals.
+
+Companies create and fund Work Trials with **USDC**. Candidates complete the defined work and submit verifiable evidence such as GitHub repositories, deployed applications, transaction links, and supporting documentation.
+
+**GenLayer** evaluates the submitted evidence against the Work Trial's requirements and Definition of Done. Once the outcome is verified, the system can settle the configured reward for the candidate and referrer.
+
+WorkTrial is built around **Solana**, with **LayerZero** used for cross-chain communication.
+
+---
+
+## How It Works
+
+```text
+Employer
+   │
+   │ Creates + funds Work Trial
+   ▼
+WorkTrial
+   │
+   │ Candidate selected
+   ▼
+Candidate completes work
+   │
+   │ Submits evidence
+   ▼
+GenLayer Outcome Verification
+   │
+   │ PASS / FAIL
+   ▼
+Relayer
+   │
+   │ Cross-chain message
+   ▼
+Solana Settlement
+   │
+   ├── Candidate reward
+   └── Referral reward
+          │
+          ▼
+   Verified Reputation
+```
+
+The important distinction is that **applying does not mean starting the work**.
+
+Multiple candidates can apply to a Work Trial, but the employer selects the candidate or finalists who actually proceed with the work.
+
+---
+
+## Core Concept
+
+A Work Trial defines three things:
+
+### 1. Requirements
+
+What the candidate must deliver.
+
+Example:
+
+* Solana integration
+* USDC payment functionality
+* Transaction confirmation
+* Error handling
+* Documentation
+
+### 2. Definition of Done
+
+The objective conditions that determine whether the work is complete.
+
+For example:
+
+* GitHub repository submitted
+* Application deployed
+* Required functionality working
+* Transactions verifiable on-chain
+* Documentation included
+* No critical runtime errors
+
+### 3. Reward
+
+The amount paid when the required outcome is successfully verified.
+
+Rewards are denominated in **USDC** and can be divided between the candidate and referrer.
+
+Example:
+
+```text
+Total Reward       500 USDC
+
+Candidate           450 USDC
+Referrer             50 USDC
+```
+
+---
+
+# Architecture
+
+Outcom consists of four main layers.
+
+```text
+┌───────────────────────────────┐
+│           Frontend            │
+│      Candidate / Employer     │
+└───────────────┬───────────────┘
+                │
+                ▼
+┌───────────────────────────────┐
+│            Backend            │
+│    Application + API Logic    │
+└───────────────┬───────────────┘
+                │
+        Evidence submission
+                │
+                ▼
+┌───────────────────────────────┐
+│          GenLayer             │
+│      Outcome Verification     │
+└───────────────┬───────────────┘
+                │
+          Verification
+          payload / result
+                │
+                ▼
+┌───────────────────────────────┐
+│           Relayer             │
+│ Cross-chain message handling  │
+└───────────────┬───────────────┘
+                │
+                ▼
+┌───────────────────────────────┐
+│            Solana             │
+│       Reward settlement       │
+└───────────────────────────────┘
+```
+
+---
+
+# Frontend
+
+The frontend provides the user-facing Outcom experience.
+
+Main areas include:
+
+* Discover Work Trials
+* Work Trial details
+* Candidate applications
+* Candidate workspace
+* Evidence submission
+* Verification status
+* Employer dashboard
+* Applicant management
+* Reward information
+* Reputation
+* Leaderboard
+* Wallet interactions
+
+A candidate moves through the following lifecycle:
+
+```text
+OPEN
+  ↓
+APPLIED
+  ↓
+SELECTED
+  ↓
+IN PROGRESS
+  ↓
+READY TO SUBMIT
+  ↓
+UNDER REVIEW
+  ↓
+VERIFIED / REJECTED
+  ↓
+REWARDED
+```
+
+Applicants who are not selected do not need to complete the Work Trial.
+
+---
+
+# Backend
+
+The backend supports the application layer between the frontend and the protocol components.
+
+It is responsible for handling application-level operations such as:
+
+* Work Trial data
+* Candidate applications
+* Candidate selection
+* Evidence submissions
+* Verification state
+* Communication between the frontend and protocol services
+* Relayer coordination
+
+The backend does not replace the on-chain settlement layer.
+
+Protocol-critical outcomes and reward settlement are handled through the blockchain and verification infrastructure.
+
+---
+
+# GenLayer Outcome Verification
+
+GenLayer is responsible for determining whether submitted evidence satisfies the Work Trial's predefined requirements.
+
+The repository contains an **OutcomeVerifier** Intelligent Contract.
+
+The verifier stores a Work Trial's:
+
+* Definition of Done
+* Requirements
+* Candidate wallet
+* Referrer wallet
+* Submitted evidence
+* Verdict
+* Score
+* Verification reasoning
+* Settlement payload
+
+### Evidence
+
+Candidates can submit:
+
+* GitHub repository URL
+* Deployed application URL
+* Additional supporting URL
+
+The verifier retrieves the relevant web content and evaluates it against the Work Trial specification.
+
+The verification process uses GenLayer's non-deterministic execution and Equivalence Principle to reach a consistent outcome.
+
+The resulting verdict is:
+
+```text
+PASS
+```
+
+or
+
+```text
+FAIL
+```
+
+A successful verification produces a settlement payload containing the relevant Solana addresses, score, trial ID, and pass/fail result.
+
+---
+
+# OutcomeVerifier Contract
+
+The main contract operations are:
+
+### `set_trial()`
+
+Creates or updates the verification criteria for a Work Trial.
+
+Only the contract administrator can configure trials.
+
+### `submit_and_verify()`
+
+Submits candidate evidence and runs the verification process.
+
+The function:
+
+1. Loads the Work Trial
+2. Validates the submitted evidence
+3. Fetches evidence from the provided URLs
+4. Evaluates the evidence against the requirements
+5. Reaches a GenLayer consensus decision
+6. Generates a settlement payload
+7. Stores the verification result
+
+### `get_trial_status()`
+
+Returns the current verification state of a Work Trial.
+
+### `list_trial_ids()`
+
+Returns the configured Work Trial IDs.
+
+---
+
+# Solana
+
+Solana acts as the settlement layer for Outcom.
+
+See the Repo for the solana program that escrows the reward <a href='https://github.com/Emman442/Outcom-solana-program'>here </a>
+
+The Solana side is responsible for the on-chain reward flow and user-facing blockchain interactions.
+
+USDC is used as the primary reward asset.
+
+The protocol is designed so that a successful verified outcome can result in:
+
+```text
+Verified Outcome
+       │
+       ▼
+Reward Settlement
+       │
+       ├── Candidate
+       │
+       └── Referrer
+```
+
+Solana also provides the verifiable transaction history that candidates can use as evidence of completed work.
+
+---
+
+# LayerZero
+
+Outcom uses **LayerZero** for cross-chain communication.
+
+LayerZero connects the protocol's verification and settlement components without requiring the entire application to exist on a single chain.
+
+The relayer coordinates the cross-chain message flow between the relevant components.
+
+Conceptually:
+
+```text
+GenLayer
+   │
+   │ Verified outcome
+   ▼
+Relayer
+   │
+   │ LayerZero message
+   ▼
+Solana
+   │
+   ▼
+USDC Settlement
+```
+
+LayerZero is therefore treated as infrastructure for the protocol rather than as part of the core hiring experience.
+
+---
+
+# Relayer
+
+The relayer connects the verification layer with the blockchain settlement layer.
+
+Its responsibilities include:
+
+* Monitoring verification results
+* Reading successful verification payloads
+* Preparing cross-chain messages
+* Sending the required LayerZero message
+* Coordinating settlement on the destination chain
+* Tracking transaction/message status
+
+This allows the application to keep the user experience simple while the underlying protocol handles the cross-chain communication.
+
+---
+
+# Verification Payload
+
+A successful verification generates a payload containing information required by the Solana settlement flow.
+
+The current verifier encodes:
+
+```text
+Trial ID
+Candidate Solana public key
+Referrer Solana public key
+Verification score
+Pass / Fail status
+```
+
+The Solana public keys are converted from Base58 into their 32-byte representation before being included in the payload.
+
+---
+
+# Example Work Trial
+
+### Build a Solana Payment Integration
+
+**Reward**
+
+500 USDC
+
+**Candidate Reward**
+
+450 USDC
+
+**Referral Reward**
+
+50 USDC
+
+### Requirements
+
+* Solana integration
+* USDC transfer functionality
+* Transaction confirmation
+* Error handling
+* Responsive interface
+
+### Definition of Done
+
+* Public GitHub repository
+* Deployed application
+* Working payment flow
+* Verifiable Solana transactions
+* Documentation
+* No critical bugs
+
+A selected candidate completes the work and submits:
+
+```text
+GitHub Repository
+        +
+Deployed Application
+        +
+Supporting Evidence
+```
+
+The verifier evaluates the evidence.
+
+If the requirements are satisfied:
+
+```text
+PASS
+  ↓
+Verification Payload
+  ↓
+Relayer
+  ↓
+LayerZero
+  ↓
+Solana
+  ↓
+USDC Reward
+```
+
+---
+
+# Why WorkTrial?
+
+Traditional hiring often asks candidates to prove their ability through:
+
+* CVs
+* interviews
+* credentials
+* references
+* portfolios
+
+WorkTrial introduces another primitive:
+
+> **Prove that you can actually do the work.**
+
+The result is a hiring system where successful work can become a verifiable reputation signal.
+
+A candidate's history can contain:
+
+```text
+18 Verified Work Trials
+14 Successful Outcomes
+$8,420 USDC Earned
+94 Reputation
+```
+
+This reputation can be associated with the candidate's on-chain identity and used across future opportunities.
+
+---
+
+# Repository Structure
+
+The repository is organized around the main components of the protocol.
+
+```text
+Outcom/
+│
+├── frontend/
+│   └── Outcom user interface
+│
+├── backend/
+│   └── Application/API services
+│
+├── contracts/
+│   └── GenLayer Intelligent Contracts
+│
+├── relayer/
+│   └── Cross-chain verification and settlement coordination
+│
+└── README.md
+```
+
+The exact implementation and deployment configuration for each component lives inside its respective directory.
+
+---
+
+# Getting Started
+
+Clone the repository:
+
+```bash
+git clone https://github.com/Emman442/Outcom
+cd outcom
+```
+
+Install the dependencies for the individual application components according to their respective package configuration.
+
+The project requires configuration for the relevant:
+
+* Solana network
+* USDC mint/address
+* GenLayer contract
+* LayerZero configuration
+* Relayer
+* Backend
+* Frontend
+
+Create the required environment files for each component before starting the application.
+
+---
+
+# Development Flow
+
+For local development, the recommended flow is:
+
+```text
+1. Start the backend
+        ↓
+2. Start the frontend
+        ↓
+3. Configure the GenLayer verifier
+        ↓
+4. Configure Solana settlement
+        ↓
+5. Start the relayer
+        ↓
+6. Create a Work Trial
+        ↓
+7. Submit candidate evidence
+        ↓
+8. Verify the outcome
+        ↓
+9. Process cross-chain message
+        ↓
+10. Settle the reward
+```
+
+---
+
+# Status
+
+Outcom is an experimental protocol demonstrating **outcome-based hiring with AI verification, on-chain settlement, and portable reputation**.
+
+The current implementation focuses on the core loop:
+
+**Work → Evidence → Verification → Settlement → Reputation**
+
+---
+
+## Built With
+
+* **Solana** — on-chain settlement
+* **USDC** — rewards and payments
+* **GenLayer** — AI-powered outcome verification
+* **LayerZero** — cross-chain communication
+* **Outcom Frontend** — candidate and employer experience
+* **Backend** — application and coordination layer
+* **Relayer** — verification-to-settlement bridge
+
+---
+
+## Important Links
+
+Checkout The solana Program for Outcom here: https://github.com/Emman442/Outcom-solana-program
+
+Checkout the Solana Deployment for Outcom on Devnet: https://explorer.solana.com/address/DMbLxuGRQdtYwhsXTGdp1qAKbzzR7jiR3gvvttgU36Tj?cluster=devnet
+
+Checkout the Repository for the relayer: https://github.com/Emman442/outcom-relayer

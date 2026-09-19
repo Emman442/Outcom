@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Outcom } from '../../types';
 import { TrialCard } from '../trials/TrialCard';
 import { UsdcDisplay } from '../common/UsdcIcon';
 import { Button } from '../common/Button';
 import { SolanaIcon, LayerZeroIcon } from '../common/NetworkIcons';
-import {ArrowRight} from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
 interface LandingViewProps {
   trials: Outcom[];
@@ -21,7 +21,60 @@ export const LandingView: React.FC<LandingViewProps> = ({
   onCreateTrial,
   onOpenReferral,
 }) => {
-  const featuredTrials = trials.slice(0, 4);
+
+
+
+    const featuredTrials = trials.slice(0, 4);
+
+  const stats = useMemo(() => {
+    const list = trials || [];
+
+    const totalEscrowed = list.reduce(
+      (sum, t) =>
+        sum +
+        Number(t.candidateReward || 0) +
+        Number(t.referralReward || 0),
+      0
+    );
+
+    const paid = list.filter(
+      (t) => t.status === "verified" || t.status === "completed"
+    );
+    const rejected = list.filter((t) => String(t.status) === "rejected");
+    const open = list.filter((t) => t.status === "open");
+    const inProgress = list.filter(
+      (t) =>
+        t.status === "in_progress" ||
+        t.status === "verifying"
+    );
+
+    const paidOut = paid.reduce(
+      (sum, t) =>
+        sum +
+        Number(t.candidateReward || 0) +
+        Number(t.referralReward || 0),
+      0
+    );
+
+    const decided = paid.length + rejected.length;
+    const successRate =
+      decided === 0 ? 0 : Math.round((paid.length / decided) * 100);
+
+    const companies = new Set(
+      list.map((t) => t.company).filter(Boolean)
+    ).size;
+
+    return {
+      totalEscrowed,
+      paidOut,
+      completed: paid.length,
+      open: open.length,
+      inProgress: inProgress.length,
+      successRate,
+      companies,
+      totalTrials: list.length,
+    };
+  }, [trials]);
 
   return (
     <div className="space-y-16 animate-in fade-in duration-300">
@@ -76,43 +129,84 @@ export const LandingView: React.FC<LandingViewProps> = ({
 
       {/* Statistics Row */}
       <section className="border-y border-[#24282D] py-8 bg-[#0D0F12]/60">
-        <div className="max-w-6xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-6">
+        <div className="max-w-6xl mx-auto px-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+          <div className="space-y-1 text-center sm:text-left">
+            <span className="text-xs font-mono uppercase tracking-wider text-[#9CA3AF] block">
+              Total Escrowed
+            </span>
+            <div className="flex items-center justify-center sm:justify-start">
+              <UsdcDisplay amount={stats.totalEscrowed} size="lg" />
+            </div>
+            <span className="text-[11px] text-[#6B7280] font-mono block">
+              Locked across all trials
+            </span>
+          </div>
+
           <div className="space-y-1 text-center sm:text-left">
             <span className="text-xs font-mono uppercase tracking-wider text-[#9CA3AF] block">
               Paid to Talent
             </span>
-            <div className="flex items-center justify-center sm:justify-start gap-2">
-              <UsdcDisplay amount={184000} size="xl" />
-              <span className="text-xl font-bold font-mono text-white">+</span>
+            <div className="flex items-center justify-center sm:justify-start">
+              <UsdcDisplay amount={stats.paidOut} size="lg" />
             </div>
-            <span className="text-[11px] text-[#6B7280] font-mono block">Automated escrow payout</span>
+            <span className="text-[11px] text-[#6B7280] font-mono block">
+              Released after PASS
+            </span>
           </div>
 
           <div className="space-y-1 text-center sm:text-left">
             <span className="text-xs font-mono uppercase tracking-wider text-[#9CA3AF] block">
-              Completed Work Trials
+              Completed Trials
             </span>
-            <div className="text-2xl sm:text-3xl font-bold font-mono text-white">1,420+</div>
-            <span className="text-[11px] text-[#6B7280] font-mono block">Verified deliverables</span>
+            <div className="text-2xl sm:text-3xl font-bold font-mono text-white">
+              {stats.completed}
+            </div>
+            <span className="text-[11px] text-[#6B7280] font-mono block">
+              Verified & settled
+            </span>
           </div>
 
           <div className="space-y-1 text-center sm:text-left">
             <span className="text-xs font-mono uppercase tracking-wider text-[#9CA3AF] block">
-              Verification Success Rate
+              Open / Active
             </span>
-            <div className="text-2xl sm:text-3xl font-bold font-mono text-[#10B981]">92%</div>
-            <span className="text-[11px] text-[#6B7280] font-mono block">Objective acceptance criteria</span>
+            <div className="text-2xl sm:text-3xl font-bold font-mono text-white">
+              {stats.open}
+              <span className="text-[#6B7280] text-lg"> / </span>
+              {stats.inProgress}
+            </div>
+            <span className="text-[11px] text-[#6B7280] font-mono block">
+              Open · in progress
+            </span>
           </div>
 
           <div className="space-y-1 text-center sm:text-left">
             <span className="text-xs font-mono uppercase tracking-wider text-[#9CA3AF] block">
-              Hiring Companies
+              Success Rate
             </span>
-            <div className="text-2xl sm:text-3xl font-bold font-mono text-white">320+</div>
-            <span className="text-[11px] text-[#6B7280] font-mono block">Protocols, DAOs, startups</span>
+            <div className="text-2xl sm:text-3xl font-bold font-mono text-[#10B981]">
+              {stats.successRate}
+              <span className="text-lg text-[#9CA3AF]">%</span>
+            </div>
+            <span className="text-[11px] text-[#6B7280] font-mono block">
+              PASS / decided verdicts
+            </span>
+          </div>
+
+          <div className="space-y-1 text-center sm:text-left">
+            <span className="text-xs font-mono uppercase tracking-wider text-[#9CA3AF] block">
+              Employers
+            </span>
+            <div className="text-2xl sm:text-3xl font-bold font-mono text-white">
+              {stats.companies}
+            </div>
+            <span className="text-[11px] text-[#6B7280] font-mono block">
+              {stats.totalTrials} trials total
+            </span>
           </div>
         </div>
       </section>
+
 
       {/* How It Works - Clean Horizontal Workflow */}
       <section className="space-y-6">
@@ -160,7 +254,7 @@ export const LandingView: React.FC<LandingViewProps> = ({
             </div>
             <h3 className="text-sm font-semibold text-white">Verify Outcome</h3>
             <p className="text-xs text-[#9CA3AF] leading-relaxed">
-              Candidate submits code repository and live deployment. Protocol oracles evaluate criteria and generate verdicts.
+              Candidate submits code repository and live deployment. Genlayer Validators/LLMs evaluate criteria and generate verdicts.
             </p>
           </div>
 
@@ -211,27 +305,30 @@ export const LandingView: React.FC<LandingViewProps> = ({
         </div>
       </section>
 
-      {/* Technical Infrastructure Callout: Solana + LayerZero */}
       <section className="p-6 sm:p-8 bg-[#0D0F12] border border-[#24282D] rounded-2xl space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[#10B981]" />
               <span className="text-xs font-mono uppercase tracking-wider text-white">
-                Web3 Protocol Substrate
+                Freelance Protocol
               </span>
             </div>
             <h3 className="text-xl font-bold text-white tracking-tight mt-1">
-              Built on Solana with LayerZero Interoperability
+              Built on Solana with LayerZero Interoperability and Genlayer for Adjudication.
             </h3>
           </div>
 
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#121417] border border-[#24282D] text-xs font-mono text-white">
-              <SolanaIcon className="w-4 h-4" /> Solana Speed & Escrow
+              <SolanaIcon className="w-4 h-4" /> Escrow
             </div>
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#121417] border border-[#24282D] text-xs font-mono text-white">
-              <LayerZeroIcon className="w-4 h-4" /> LayerZero Cross-Chain
+              <LayerZeroIcon className="w-4 h-4" /> Cross-Chain
+            </div>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#121417] border border-[#24282D] text-xs font-mono text-white">
+              <img src="https://genlayer.com/brand/genlayer-logo-white.svg" alt="genlayer logo" className='w-15 h-5' />
+              <img src="" alt="" />
             </div>
           </div>
         </div>

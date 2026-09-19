@@ -23,9 +23,10 @@ import { VerificationView } from "./components/verification/VerificationView";
 import { ReputationView } from "./components/reputation/ReputationView";
 import { EmployerDashboard } from "./components/employer/EmployerDashboard";
 import { CreateTrialModal } from "./components/employer/CreateTrialModal";
-import { OutcomLogo } from "./components/common/NetworkIcons";
+import { OutcomLogo, SolanaIcon } from "./components/common/NetworkIcons";
 import { useProgram } from "@/src/hooks/solana/use-program";
 import { mapTrial } from "./components/trials/TrialDetailView";
+import { UsdcIcon } from "./components/common/UsdcIcon";
 
 function TrialDetailRoute({
   onCommitTrial,
@@ -311,6 +312,29 @@ export default function App() {
           txHash={inspectedTx}
         />
       )}
+
+
+      <footer className="border-t border-[#24282D] bg-[#090A0C] py-2 text-xs text-[#9CA3AF] mt-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1 text-white font-semibold tracking-tight">
+              <span>Outcom.</span>
+            </div>
+            <span className="text-[#6B7280]">|</span>
+            <span className="font-mono text-[11px] mt-1">Outcome-Based Hiring Protocol</span>
+          </div>
+
+          <div className="flex items-center gap-2 font-mono text-[11px]">
+            <span>Powered by </span>
+            <div>
+              <img src="/solana.png" alt="Solana" className="w-35 h-18"/>
+            </div>
+            <div className="">
+              <img src="https://genlayer.com/brand/genlayer-logo-white.svg" alt="Genlayer Logo" className="w-22 h-8"/>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
