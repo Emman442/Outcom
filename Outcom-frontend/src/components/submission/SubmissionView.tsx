@@ -11,8 +11,6 @@ import {
   Plus,
   Trash2,
   CheckCircle2,
-  AlertCircle,
-  Terminal,
   Cpu,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -119,7 +117,7 @@ export const SubmissionView: React.FC<SubmissionViewProps> = ({
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!repositoryUrl.trim() || !deploymentUrl.trim()) return;
+    if (!repositoryUrl.trim() || !deploymentUrl.trim() || !trial) return;
     if (!publicKey || !program) {
       toast.error("Connect a Solana wallet");
       return;
@@ -158,7 +156,7 @@ export const SubmissionView: React.FC<SubmissionViewProps> = ({
         evidenceLinks.find((l) => l.url.startsWith("http"))?.url ||
         "";
 
-        console.log("Extra url", extraUrl)
+      console.log("Extra url", extraUrl)
       const res = await fetch(`${RELAYER}/submit-and-verify`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -178,6 +176,18 @@ export const SubmissionView: React.FC<SubmissionViewProps> = ({
       }
 
       toast.success("Evidence sent to GenLayer");
+
+
+      onSubmit({
+        trialId: trial.id,
+        repositoryUrl: repositoryUrl.trim(),
+        deploymentUrl: deploymentUrl.trim(),
+        documentationUrl: documentationUrl.trim(),
+        evidenceLinks,
+        notes,
+        commitHash,
+        submittedAt: new Date().toISOString(),
+      });
     } catch (err: any) {
       console.error(err);
       toast.error(err.message || "submit_and_verify failed");

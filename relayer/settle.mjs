@@ -12,8 +12,17 @@ import {
   getAssociatedTokenAddressSync,
 } from "@solana/spl-token";
 
-function loadKeypair(p) {
-  const raw = JSON.parse(fs.readFileSync(p, "utf8"));
+function loadKeypair(value) {
+  if (!value) throw new Error("keypair missing");
+
+  const trimmed = String(value).trim();
+
+  if (trimmed.startsWith("[")) {
+    const secret = JSON.parse(trimmed);
+    return Keypair.fromSecretKey(Uint8Array.from(secret));
+  }
+
+  const raw = JSON.parse(fs.readFileSync(trimmed, "utf8"));
   return Keypair.fromSecretKey(Uint8Array.from(raw));
 }
 
@@ -32,8 +41,9 @@ export async function settleOnSolana({ trialId, payloadHex, candidate, referrer 
     process.env.SOLANA_RPC || "https://api.devnet.solana.com",
     "confirmed"
   );
+
   const payer = loadKeypair(
-    process.env.SOLANA_PAYER_KEYPAIR || path.resolve("../keys/id.json")
+    process.env.SOLANA_PAYER_KEYPAIR || path.resolve("../keys/payer.json")
   );
   const endpoint = loadKeypair(
     process.env.MOCK_ENDPOINT_KEYPAIR || path.resolve("../keys/mock-endpoint.json")

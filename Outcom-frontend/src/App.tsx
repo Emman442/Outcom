@@ -327,7 +327,7 @@ export default function App() {
           <div className="flex items-center gap-2 font-mono text-[11px]">
             <span>Powered by </span>
             <div>
-              <img src="/solana.png" alt="Solana" className="w-35 h-18"/>
+              <img src="/solana2.png" alt="Solana" className="h-12"/>
             </div>
             <div className="">
               <img src="https://genlayer.com/brand/genlayer-logo-white.svg" alt="Genlayer Logo" className="w-22 h-8"/>

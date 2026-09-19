@@ -266,9 +266,9 @@ export const VerificationView: React.FC<VerificationViewProps> = ({
             );
           })()}
 
-          {settleError && (
+          {/* {settleError && (
             <p className="text-[#EF4444] text-xs">{settleError}</p>
-          )}
+          )} */}
         </div>
       </div>
 

@@ -19,7 +19,7 @@ export interface Outcom {
   company: string;
   companyLogo: string;
   isCompanyVerified: boolean;
-  category: 'Smart Contracts' | 'Full-Stack' | 'Frontend' | 'Protocol Engineering' | 'Security & Audit' | 'Data & Indexing';
+  category: 'Smart Contracts' | 'Intelligent Contracts' | 'Full-Stack' | 'Frontend' | 'Protocol Engineering' | 'Security & Audit' | 'Data & Indexing';
   description: string;
   objective: string;
   requirements: Requirement[];

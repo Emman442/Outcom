@@ -34,7 +34,7 @@ export const CreateTrialModal: React.FC<CreateTrialModalProps> = ({
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4>(1);
   const { publicKey, connected } = useWallet();
   const { program, provider } = useProgram();
-  const {connection} = useConnection()
+  const { connection } = useConnection()
   // const solanaConnection = useSolanaConnection()
   const { nextId, fetchTrials } = useTrials();
   const [usdcBalance, setUsdcBalance] = useState<number>(0);
@@ -60,7 +60,6 @@ export const CreateTrialModal: React.FC<CreateTrialModalProps> = ({
   const [definitionOfDoneList, setDefinitionOfDoneList] = useState<string[]>([
     'Public GitHub repository with verified commit history',
     'Application deployed to public URL',
-    'Verifiable transaction signatures on Solana block explorer',
     'Comprehensive README and test suite',
   ]);
   const [newDod, setNewDod] = useState('');
@@ -144,6 +143,9 @@ export const CreateTrialModal: React.FC<CreateTrialModalProps> = ({
     setNewReq('');
   };
 
+
+  console.log(requirementsList.join(","))
+
   const handleRemoveRequirement = (idx: number) => {
     setRequirementsList(requirementsList.filter((_, i) => i !== idx));
   };
@@ -160,14 +162,19 @@ export const CreateTrialModal: React.FC<CreateTrialModalProps> = ({
 
   const handleFundAndPublish = async () => {
     if (!program || !publicKey || !provider) return;
-    if (!title.trim() || definitionOfDoneList.length === 0) return;
+    if (!title.trim() || definitionOfDoneList.length === 0 || requirementsList.length === 0) {
+      toast.info("Please fill in required fields!")
+    }
+
     if (!hasSufficientBalance) return;
 
-    const trialId = nextId; // trial_1, trial_2, ...
+    const trialId = nextId;
     if (trialId.length > 32) {
       console.error("trial_id too long");
       return;
     }
+
+    console.log("requirements list: ", requirementsList.join("\n"))
 
     try {
       setIsFunding(true);
@@ -211,6 +218,9 @@ export const CreateTrialModal: React.FC<CreateTrialModalProps> = ({
 
       const trial = await program.account.trialAccount.fetch(trialPda);
 
+      console.log("raw requirements from chain:", trial.requirements);
+      console.log("typeof:", typeof trial.requirements);
+
       if (trial.trialId !== trialId) {
         throw new Error("Trial account id mismatch");
       }
@@ -230,6 +240,7 @@ export const CreateTrialModal: React.FC<CreateTrialModalProps> = ({
         body: JSON.stringify({
           trialId,
           definitionOfDone: dod,
+          requirements: requirementsList.join("\n")
         }),
       });
       const glJson = await glRes.json();
@@ -248,6 +259,7 @@ export const CreateTrialModal: React.FC<CreateTrialModalProps> = ({
       setIsFunding(false);
     }
   };
+
 
   const resetForm = () => {
     setCurrentStep(1);
@@ -312,6 +324,7 @@ export const CreateTrialModal: React.FC<CreateTrialModalProps> = ({
                   className="w-full bg-[#121417] border border-[#24282D] focus:border-[#0052FF] focus:outline-none rounded-lg px-3 py-2 text-xs text-white"
                 >
                   <option value="Smart Contracts">Smart Contracts</option>
+                  <option value="Intelligent Contracts">Intelligent Contracts</option>
                   <option value="Full-Stack">Full-Stack</option>
                   <option value="Frontend">Frontend</option>
                   <option value="Protocol Engineering">Protocol Engineering</option>

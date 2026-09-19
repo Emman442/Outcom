@@ -8,7 +8,6 @@ import {
   CheckCircle,
   Clock,
   Users,
-  Shield,
   ChevronLeft,
   Share2,
   FileCode,
@@ -36,11 +35,6 @@ interface TrialDetailViewProps {
   trialApplicants?: CandidateApplicant[];
 }
 
-const MOCK_REQUIREMENTS = [
-  { id: 'req-1', text: 'Anchor smart contract deployed on Solana Devnet', mandatory: true },
-  { id: 'req-2', text: 'USDC SPL token transfer verification', mandatory: true },
-  { id: 'req-3', text: 'Robust error handling and unit tests', mandatory: false },
-];
 
 export function mapTrial(account: any, pubkey: PublicKey): Outcom {
   const statusKey =
@@ -147,7 +141,7 @@ export const TrialDetailView: React.FC<TrialDetailViewProps> = ({
           setTrial(null);
           return;
         }
-
+        console.log("row", row)
         setTrial(mapTrial(row.account, row.publicKey));
       } catch (err) {
         console.error('fetch trial failed', err);
@@ -231,9 +225,11 @@ export const TrialDetailView: React.FC<TrialDetailViewProps> = ({
   const totalReward = trial.totalReward || 1;
   const candidatePercent = Math.round((trial.candidateReward / totalReward) * 100);
   const referralPercent = 100 - candidatePercent;
-  const requirements = trial.requirements ?? MOCK_REQUIREMENTS;
+  const requirements = trial.requirements;
   const definitionOfDone = trial.definitionOfDone ?? [];
   const skills = trial.skills ?? [];
+
+  console.log(trial)
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200">

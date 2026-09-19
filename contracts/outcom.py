@@ -99,7 +99,7 @@ class OutcomVerifier(gl.contract.Contract):
         deploy = deployed_app_url
         extra = extra_url or ""
 
-        def evaluate() -> str:
+        def evaluate_verdict() -> str:
             repo_txt = "REPO_FETCH_FAILED"
             deploy_txt = "DEPLOY_FETCH_FAILED"
             extra_txt = ""
@@ -113,11 +113,12 @@ class OutcomVerifier(gl.contract.Contract):
                 pass
             if extra.startswith("http"):
                 try:
-                    extra_txt = gl.nondet.web.render(extra, mode="text")[:800]
+                    extra_txt = gl.nondet.web.render(extra, mode="text")[:400]
                 except Exception:
                     extra_txt = "EXTRA_FETCH_FAILED"
 
             prompt = f"""Verify work trial {trial_id}.
+
 Definition of done:
 {dod}
 
@@ -130,19 +131,35 @@ GitHub page text:
 Deployed app text:
 {deploy_txt}
 
-Extra:
+Extra evidence text:
 {extra_txt}
 
 If the evidence clearly meets the definition of done AND the requirements, reply PASS.
 Otherwise reply FAIL.
-Reply with one word only.
+Reply with one word only: PASS or FAIL.
 """
             raw = gl.nondet.exec_prompt(prompt).strip().upper()
             return "PASS" if raw.startswith("PASS") else "FAIL"
 
-        decision = gl.eq_principle.strict_eq(evaluate)
+        # Only the verdict uses consensus — one word, strict match
+        decision = gl.eq_principle.strict_eq(evaluate_verdict)
         passed = decision == "PASS"
         score = 80 if passed else 0
+
+        # Deterministic template — no second LLM, no Undetermined risk
+        if passed:
+            reasoning = (
+                f"PASS for {trial_id}. Submitted repository and deployment evidence "
+                f"were judged to meet the definition of done and the listed requirements. "
+                f"Repo: {repo}. Deploy: {deploy}."
+            )
+        else:
+            reasoning = (
+                f"FAIL for {trial_id}. Submitted repository and deployment evidence "
+                f"were judged not to meet the definition of done and the listed requirements. "
+                f"Repo: {repo}. Deploy: {deploy}."
+            )
+
         payload = self._encode_solana_payload(
             trial_id,
             candidate_solana_pubkey,
@@ -158,11 +175,13 @@ Reply with one word only.
         row["referrer_solana"] = referrer_solana_pubkey
         row["verdict"] = decision
         row["score"] = score
-        row["reasoning"] = decision
+        row["reasoning"] = reasoning
         row["payload_hex"] = payload
         data[trial_id] = row
         self._save(data)
 
+
+        
     def _encode_solana_payload(self, trial_id, candidate, referrer, score, passed) -> str:
         tid = trial_id.encode("utf-8")[:32].ljust(32, b"\x00")
         cand = self._b58_32(candidate)
